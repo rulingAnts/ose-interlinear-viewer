@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>One-Story Editor to XLingPaper Exporter</title>
+  <script>
+    var resultHTMLScript = `
+    function toggleAnchor(elementId) {
+      var anchor = document.getElementById(elementId);
+
+      if (anchor) {
+        var displayValue = anchor.style.display === 'none' ? 'inline' : 'none';
+        anchor.style.display = displayValue;
+      } else {
+        console.error("Element with ID '" + elementId + "' not found.");
+      }
+    }
+      `;
+    var resultHTMLScript = '\<script\>\n' + resultHTMLScript + '\n\<\/script\>'
+  </script>
+  <script type="text/xsl" id="xslt-script">
+
+    <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+
+    <xsl:output method="html" indent="yes" />
+  
+    <!--Stylesheet-wide settings for adjusting with checkboxes. -->
+    <!--Set values as 1 to enable a setting, or 0 to disable. -->
+    <xsl:variable name="displayFreeTranslationLines" select="1" />
+    <xsl:variable name="generateParatextStyleBT" select="1" />
+    <xsl:variable name="generateInterlinearLines" select="1" />
+    <xsl:variable name="displayTestQuestions" select="0" />
+    <xsl:variable name="displayRetellings" select="0" />
+    <xsl:variable name="displayConsultantNotes" select="0" />
+    <xsl:variable name="storyCrafter" select="'TBD'" />
+    <xsl:variable name="storyFacilitator" select="'TBD'" />
+    <xsl:variable name="storyConsultant" select="'TBD'" />
+  
+  
+    <!--Main document Body-->
+    <xsl:template match="/">
+      <html>
+      <head>
+        <title><xsl:value-of select="/story/@name" /></title>
+        <style>
+        /* Styles for XLingPaper Elements */
+            .section1 {}
+            .interlinear {}
+        
+        /* Languages */
+            .lVernacular {
+                color:#000000;
+                padding-right: 2chr; /* Make sure there's space between interlinear words. */
+            }
+            .lGloss {
+                color:#0099ff;
+            }
+            .en {
+                padding-top: 1pt;
+                padding-bottom: 5pt;
+                color:#009999;
+            }
+
+
+        /* Types */
+        /* The following types are provided as pre-set examples.
+            You may well want to create your own types that refer to one or more of these.
+            You do that by typing in the names of the types in the types attribute of your type.*/
+            
+            .tBold {
+                font-weight:bold;
+            }
+            .tBoldItalic {
+                font-style:italic;
+                font-weight:bold;
+            }
+            .tEmphasis {
+                font-weight:bold;
+            }
+            .tItalic {
+                font-style:italic;
+            }
+            .tSubscript{
+                vertical-align:sub;
+                font-size:65%;
+            }
+            .tSuperscript {
+                vertical-align:super;
+                font-size:65%;
+            }
+            .tAnchor {
+                vertical-align:super;
+                font-size:65%;
+                color:#aaaaaa;
+            }
+            .tBnB {
+                vertical-align:sub;
+                color: #999999;
+                font-size:65%;
+            }
+            .tAnchorInline {
+                color: #aaaaaa;
+                font-size:65%;
+                text-align:right;
+            }
+            .comment {
+                display:none;
+            }
+
+        </style>
+        
+      </head>
+      <body>
+        <div align="right"><button onclick="downloadHtml()">Save</button></div>
+        <script src="saveThisDocument.js" />
+        <div id="frontMatter">
+          <h1><xsl:value-of select="/story/@name" /></h1>
+          <h2><xsl:value-of select="$storyCrafter" /></h2>
+          <div id="CraftingInformation">
+          <h3>Crafting Information</h3>
+              <!--Later Add meta-data (will need to match user ids) for...-->
+              <!--Crafter-->
+              <!--Facilitator-->
+              <!--Consultant--><ul>
+              <li><span class="tBold">Crafted by: </span><xsl:value-of select="$storyCrafter" /></li>
+              <li><span class="tBold">Facilitator: </span><xsl:value-of select="$storyFacilitator" /></li>
+              <li><span class="tBold">Consultant: </span><xsl:value-of select="$storyConsultant" /></li>
+              <li><span class="tBold">Non-Biblical Story: </span><xsl:value-of select="/story/CraftingInfo/@NonBiblicalStory" /></li>
+              <li><span class="tBold">Story Purpose: </span><xsl:value-of select="/story/CraftingInfo/StoryPurpose" /></li>
+              <li><span class="tBold">Resources Used: </span><xsl:value-of select="/story/CraftingInfo/ResourcesUsed" /></li>
+              <li><span class="tBold">Miscellaneous Story Information: </span><xsl:value-of select="/story/CraftingInfo/MiscellaneousStoryInfo" /></li>
+              </ul>
+          </div>
+        </div>
+        <xsl:if test="$generateInterlinearLines &gt; 0">      
+          <div class="section1" id="s1">
+            <h3>Interlinear Back-Translation</h3>
+            <ol class="interlinear">
+                <xsl:apply-templates select="/story/Verses/Verse/StoryLine[@lang='Vernacular']"/>
+            </ol>
+          </div>
+        </xsl:if>
+        <xsl:if test="$generateParatextStyleBT &gt; 0">
+          <!-- Call tagBnB template directly -->
+          <div class="section1" id="s2">
+            <h3>Paratext-Style Back-Translation</h3>
+            <p>
+             <xsl:for-each select="//StoryLine[@lang='InternationalBt']">
+              <!-- Apply templates to the child nodes of StoryLine -->
+              <xsl:apply-templates select="node()"/>
+              <xsl:for-each select="node()/../../Anchors/Anchor">
+                <xsl:variable name="uniqueId" select="generate-id()" />
+                <button>
+                  <xsl:attribute name="onclick">
+                    <xsl:text>toggleAnchor('anchor_</xsl:text>
+                    <xsl:value-of select="$uniqueId"/>
+                    <xsl:text>')</xsl:text>
+                  </xsl:attribute>
+                  +/-
+                </button>
+                <xsl:text> </xsl:text>
+                <span class="tAnchor" style="display:none;">
+                  <xsl:attribute name="id">
+                    <xsl:value-of select="concat('anchor_', $uniqueId)"/>
+                  </xsl:attribute>
+                  <xsl:value-of select="concat(., '; ')" />
+                </span>
+              </xsl:for-each>
+              <span class="comment">
+                <xsl:value-of select="../../../@guid" />
+              </span>
+              <xsl:text> </xsl:text>
+            </xsl:for-each>
+            </p>
+          </div>
+        </xsl:if>
+
+  
+
+            
+              
+  
+            <span class="comment">
+                Add your custom types here.
+            </span>
+        </body>
+  
+      </html>
+    </xsl:template>
+  
+      <!-- Handle BnB tags -->
+      <xsl:template match="text()">
+        <xsl:call-template name="replace-bnb">
+          <xsl:with-param name="input" select="."/>
+        </xsl:call-template>
+      </xsl:template>
+      
+      <xsl:template name="replace-bnb">
+        <xsl:param name="input"/>
+        <xsl:choose>
+          <xsl:when test="contains($input, '[B&amp;B')">
+            <!-- Replace [B&amp;B*] with <span class="tBnb">[B&amp;B*]</span> -->
+            <xsl:value-of select="substring-before($input, '[B&amp;B')" />
+            <span class="tBnb"><xsl:value-of select="substring-before(substring-after($input, '[B&amp;B'), ']')" />[B&amp;B]</span>
+            <!-- Recursively process the remaining text -->
+            <xsl:call-template name="replace-bnb">
+             [B&amp;B<xsl:with-param name="input" select="concat(' ', substring-after(substring-after($input, '[B&amp;B'), ']'))" />]
+            </xsl:call-template>
+          </xsl:when>
+          <xsl:otherwise>
+            <!-- No more occurrences of [B&amp;B*], output the remaining text -->
+            <xsl:value-of select="$input" />
+          </xsl:otherwise>
+        </xsl:choose>
+      </xsl:template>
+
+  
+  <!--Handle Interlinear Lines-->
+  <xsl:template match="*[@lang='Vernacular']">
+    <li>
+    <table>
+    <tbody>
+      <tr><td><table><tbody>
+        <tr>
+            <xsl:call-template name="tokenizeAndWrap">
+            <xsl:with-param name="text" select="."/>
+          </xsl:call-template>
+        </tr>
+        <tr>
+            <xsl:call-template name="tokenizeAndWrapWithGloss">
+            <xsl:with-param name="text" select="following-sibling::*[@lang='NationalBt'][1]" />
+          </xsl:call-template>
+        </tr></tbody></table>
+      </td></tr>
+      <tr><td><div class="en">
+        <xsl:if test="$displayFreeTranslationLines &gt; 0">
+          <xsl:value-of select="following-sibling::*[@lang='NationalBt'][1]/following-sibling::*[@lang='InternationalBt'][1]"/>
+        </xsl:if>
+        <xsl:apply-templates select="following-sibling::Anchors" mode="appendAnchorText"/>
+      </div></td></tr>
+    </tbody>
+    </table>
+  </li>
+  </xsl:template>
+  
+  <xsl:template match="Anchors" mode="appendAnchorText">
+    <xsl:for-each select="Anchor">
+      <div class="tAnchorInline"><xsl:value-of select="."/></div>
+    </xsl:for-each>
+  </xsl:template>
+
+
+  <xsl:template name="tokenizeAndWrap">
+  <xsl:param name="text"/>
+  <xsl:choose>
+    <xsl:when test="contains($text, ' ')">
+      <td>
+        <span class="lVernacular">
+          <xsl:value-of select="substring-before($text, ' ')"/>
+        </span>
+      </td>
+      <!-- Recursive call with the remaining text -->
+      <xsl:call-template name="tokenizeAndWrap">
+        <xsl:with-param name="text" select="substring-after($text, ' ')"/>
+      </xsl:call-template>
+    </xsl:when>
+    <xsl:otherwise>
+      <td>
+        <span class="lVernacular">
+          <xsl:value-of select="$text"/>
+        </span>
+      </td>
+    </xsl:otherwise>
+  </xsl:choose>
+</xsl:template>
+
+
+<!-- New template for wrapping words with gloss elements -->
+<xsl:template name="tokenizeAndWrapWithGloss">
+  <xsl:param name="text"/>
+  <xsl:choose>
+    <xsl:when test="contains($text, ' ')">
+      <td>
+        <span class="lGloss">
+          <xsl:value-of select="substring-before($text, ' ')"/>
+        </span>
+      </td>
+      <!-- Recursive call with the remaining text -->
+      <xsl:call-template name="tokenizeAndWrapWithGloss">
+        <xsl:with-param name="text" select="substring-after($text, ' ')"/>
+      </xsl:call-template>
+    </xsl:when>
+    <xsl:otherwise>
+      <td>
+        <span class="lGloss">
+          <xsl:value-of select="$text"/>
+        </span>
+      </td>
+    </xsl:otherwise>
+  </xsl:choose>
+</xsl:template>
+  
+  </xsl:stylesheet>
+
+</script>
+<script>
+  let storyNodes;
+
+  function populateStoryList() {
+    const input = document.getElementById('fileInput');
+    const storySelect = document.getElementById('storySelect');
+    storySelect.innerHTML = '<option>Select a story</option>'; // Clear previous options
+
+    const reader = new FileReader();
+    reader.onload = function (event) {
+      const xmlContent = event.target.result;
+      const xmlDoc = new DOMParser().parseFromString(xmlContent, 'application/xml');
+      storyNodes = xmlDoc.querySelectorAll('story');
+
+      storyNodes.forEach((storyNode, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        option.text = storyNode.getAttribute('name');
+        storySelect.add(option);
+      });
+    };
+
+    reader.readAsText(input.files[0]);
+    document.getElementById('loadedOptions').removeAttribute('hidden');
+  }
+
+  function filterStories() {
+    const nonBiblicalGroupSelect = document.getElementById('nonBiblicalGroupSelect');
+    const selectedGroup = nonBiblicalGroupSelect.value;
+
+    const storySelect = document.getElementById('storySelect');
+    storySelect.innerHTML = '<option>Select a story</option>'; // Clear previous options
+
+    storyNodes.forEach((storyNode, index) => {
+      const craftingInfoNode = storyNode.querySelector('CraftingInfo');
+      const nonBiblicalStoryAttribute = craftingInfoNode.getAttribute('NonBiblicalStory');
+      if (nonBiblicalStoryAttribute === selectedGroup || selectedGroup === 'All') {
+        const option = document.createElement('option');
+        option.value = index;
+        option.text = storyNode.getAttribute('name');
+        storySelect.add(option);
+      }
+    });
+  }
+
+  function transformStory() {
+    const storySelect = document.getElementById('storySelect');
+    const selectedStoryIndex = storySelect.value;
+
+    if (selectedStoryIndex !== 'Select a story') {
+      //const newXMLFileName = document.getElementById('xmlFileName').value;
+      const selectedStoryNode = storyNodes[selectedStoryIndex];
+
+      const xsltScript = document.getElementById('xslt-script');
+      const xsltContent = xsltScript.textContent || xsltScript.innerText;
+
+      const xsltProcessor = new XSLTProcessor();
+      const xsltDoc = new DOMParser().parseFromString(xsltContent, 'application/xml');
+      xsltProcessor.importStylesheet(xsltDoc);
+
+      const resultDoc = xsltProcessor.transformToDocument(selectedStoryNode);
+
+      let resultString = new XMLSerializer().serializeToString(resultDoc);
+      
+      // Insert the resultHTMLScript before </head>
+      var headIndex = resultString.indexOf('</head>');
+      if (headIndex !== -1) {
+        resultString = resultString.slice(0, headIndex) + '\n' + resultHTMLScript + '\n' + resultString.slice(headIndex);
+      } else {
+        console.error('Error: </head> not found in resultString');
+      }
+      
+      output.textContent = resultString;
+      
+      // Output a file for the user to download (commented out for now).
+      //const blob = new Blob([resultString], { type: 'text/xml' });
+      //const link = document.createElement('a');
+      //link.href = window.URL.createObjectURL(blob);
+      //link.download = newXMLFileName + '.xml';
+      //link.click();
+
+      // Function to escape HTML characters to prevent XSS
+      //function escapeHTML(html) {
+      //  return html.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      // Open a new window and set its content
+    const newWindow = window.open('', '_blank', 'width=1000,height=800,scrollbars=yes,menubar=yes');
+      newWindow.document.write(resultString);
+      newWindow.document.close();
+
+    // Optionally, you can focus the new window
+    //newWindow.focus();
+
+    } else {
+      alert('Please select a story before transforming.');
+    }
+  }
+
+  function updateBackTranslationStyle() {
+    let backTranslationStyleSelect = document.getElementById('backTranslationStyleSelect');
+    let selectedStyle = backTranslationStyleSelect.value;
+
+    let xsltScript = document.getElementById('xslt-script');
+    let xsltContent = xsltScript.textContent;
+
+    let updatedXSLTContent = xsltContent;
+
+    switch (selectedStyle) {
+        case 'flexStyle':
+        updatedXSLTContent = updatedXSLTContent.replace(/<xsl:variable name="displayFreeTranslationLines" select="." \/>/g, '<xsl:variable name="displayFreeTranslationLines" select="1" />');          
+            updatedXSLTContent = updatedXSLTContent.replace(/<xsl:variable name="generateParatextStyleBT" select="." \/>/g, '<xsl:variable name="generateParatextStyleBT" select="0" />');
+            break;
+        case 'paratextStyle':
+        updatedXSLTContent = updatedXSLTContent.replace(/<xsl:variable name="displayFreeTranslationLines" select="." \/>/g, '<xsl:variable name="displayFreeTranslationLines" select="0" />');
+            updatedXSLTContent = updatedXSLTContent.replace(/<xsl:variable name="generateParatextStyleBT" select="." \/>/g, '<xsl:variable name="generateParatextStyleBT" select="1" />');
+            break;
+        case 'bothStyles':
+            updatedXSLTContent = updatedXSLTContent.replace(/<xsl:variable name="displayFreeTranslationLines" select="." \/>/g, '<xsl:variable name="displayFreeTranslationLines" select="1" />');
+            updatedXSLTContent = updatedXSLTContent.replace(/<xsl:variable name="generateParatextStyleBT" select="." \/>/g, '<xsl:variable name="generateParatextStyleBT" select="1" />');
+            break;
+        default:
+            break;
+    }
+
+    // Update the content of the XSLT script
+    xsltScript.textContent = updatedXSLTContent;
+
+    console.log('XSLT updated:', updatedXSLTContent);
+}
+
+function goBack() {
+      window.history.back();
+    }
+
+</script>
+</head>
+<body>
+  <center style="margin-top:30px;">
+<table>
+  <thead>
+    <tr><th colspan="2">OneStory Story Interlinearizer</th></tr>
+    <tr><td><button onclick="goBack()">Go Back</button></td>
+        <td><input type="file" id="fileInput" /><button onclick="populateStoryList()">Open</button></td></tr>
+  </thead>
+  <tbody hidden id="loadedOptions">
+    <td style="text-align: right;"><label for="nonBiblicalGroupSelect">Select Story:</label></td>
+        <td><select id="nonBiblicalGroupSelect" onchange="filterStories()">
+  <option value="All">All</option>
+  <option value="true">Non-Biblical Stories</option>
+  <option value="false">Biblical Stories</option>
+</select> 
+  <select id="storySelect" onchange="document.getElementById('xmlFileName').value=this.options[storySelect.selectedIndex].innerText">
+    <option>Select a story</option>
+  </select></td></tr>
+<tr><td style="text-align: right;">
+  <label for="backTranslationStyleSelect">Back-Translation Style:</label></td>
+  <td><select id="backTranslationStyleSelect" onchange="updateBackTranslationStyle()">
+    <option value="flexStyle">FLEx Style</option>
+    <option value="paratextStyle">Paratext Style</option>
+    <option value="bothStyles" selected>Both</option>
+  </select></td></tr>
+  <tr><td style="text-align: right;">
+    <label for="xmlFileName">Save as...</label>
+    </td><td><input id="xmlFileName" value="NewXLingPaperDocument" style="width:40ch;" onload="this.value=document.getElementById('storySelect').value;" />.xml</td></tr>
+     
+ <tr><td></td><td><button onclick="transformStory()">Generate Web Page!</button></td>
+</tr>
+  </tbody>
+  </table></center>
+
+<span hidden><pre id="output"></pre></span>
+</body>
+</html>
