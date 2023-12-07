@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>One-Story Editor Interlinearizer</title>
+</head>
+<body>
+  <center style="margin-top:30px;">
+<table>
+  <thead>
+    <tr><th><h1>OneStory Story Interlinearizer</h1></th></tr>
+    <tr><th>Select Export Format...</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><button onclick="navigateTo('./xlingpaper.html');">XLingPaper</button></td></tr>
+    <tr><td><button onclick="navigateTo('./html.html');">Web Page</button></td></tr>
+    <tr hidden><td><button onclick="navigateTo('./word-writer.html');">OpenOffice Writer/MS Word</button></td></tr>
+  </tbody>
+  </table></center>
+
+<span hidden><pre id="output"></pre></span>
+</body>
+<script>
+  function navigateTo(path) {
+    window.location.href = path;
+  }
+</script>
+</html>
