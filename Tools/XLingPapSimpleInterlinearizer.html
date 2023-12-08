@@ -1,0 +1,277 @@
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+        <title>XLingPaper Interlinear Text GUI</title>
+        <script>
+            function generateCode(sourceLangLines,outputType,outPutInterlinearType) {                
+                if (outputType=="XLingPaper") {
+                    //Parameters for conversion to XLingPaper XML code
+                    
+                    //First, simple string variables to define the strings used to 
+                    //split lines, words, and line groups
+                    var lineSplit = '\n';
+                    var wrdSplit = ' ';
+                    var interlinearSplit = null;
+
+                    //Then define opening and closing tags/code to put between words,
+                    //lines, line groups, glosses, free translations, etc.
+                    //Each of these are 2 position arrays in which [0] is the opening
+                    //tag/code and [1] is the closing tag/code.
+                    var langDataTag = ['<langData lang="lVernacular">','</langData>'];
+                    var glossTag = ['<gloss lang="lGloss">','</gloss>'];
+                    var wrdTag = ['<wrd>','</wrd>'];
+                    var lineTag = ['<line>','</line>\n'];
+                    var lineGroupTag = ['<lineGroup>\n','</lineGroup>\n'];
+                    var freeTag = ['<free>','</free>\n'];
+                    var interlinearSingleTag = ['<interlinear>\n','</interlinear>\n'];
+                    var listInterlinearTag = ['<listInterlinear letter="x">\n','</listInterlinear>\n'];
+                    var interlinearTextID = 'T-ID' + Math.floor(Math.random() * 100);
+                    var interlinearTextTag = ['<interlinear-text text="' + interlinearTextID + '"><textInfo><textTitle>Title</textTitle><shortTitle>Short Title</shortTitle></textInfo>','</interlinear-text>'];
+                    //Except for exampleTag, which has four array-positions in order to make room for a random
+                    //number in the middle. [0] is opening tag/code before the example number,
+                    //[1] is the example number, and [2] is opening code after the number,
+                    //and [3] is the closing tag(s)/code.
+                    var exampleTag = [
+                        /* Opening Code before example number: */'<example num="x',
+                        /* DefaultExampleNum: */ Math.floor(Math.random() * 100000) + '',
+                        /* Opening code after example number: */'">',
+                        /* Closing tag(s)/code: */'</example>'];
+                    var outerXML = [
+                        '<?xml version="1.0" encoding="UTF-8"?>\n' +
+                        '<!DOCTYPE lingPaper PUBLIC "-//XMLmind//DTD XLingPap//EN"\n' +
+                        '"XLingPap.dtd">\n' +
+                        '<lingPaper automaticallywrapinterlinears="yes">\n' +
+                        '<section1 id="s' + Math.floor(Math.random() * 100000) + '">\n' +
+                        '<secTitle>New Section</secTitle>',
+                        '</section1>\n' +
+                        '<languages>\n<language color="#000000" id="lVernacular" name="vernacular"></language>\n' +
+                        '<language color="#000000" id="lGloss" name="gloss"></language>\n' +
+                        '<language color="#000000" id="en"></language>\n</languages>\n' +
+                        '</lingPaper>'
+                    ]
+
+                    //Code to apply the correct parameters for the kind of data we're doing 
+                    //Note: this is done a little bit sloppy and poorly thought out, so follow
+                    //this carefully. What the following code does is to shuffle things around,
+                    //for example to change the interlinear-text variable to an example element
+                    //if it's a single listInterlinear Example. And to replace all the exampleTag
+                    //array values with empty strings if it's a single example instead of several
+                    //examples. I told you it was sloppy and poorly thought out. But it works.
+                    if (outPutInterlinearType==="eX_listInterlinear") {
+                        var interlinearTag = listInterlinearTag;
+                        interlinearTextTag[0] = exampleTag[0] + exampleTag[1] + exampleTag[2];
+                        interlinearTextTag[1] = exampleTag[3];
+                        exampleTag = ['','','',''];
+                    } else if (outPutInterlinearType==="eX_interlinear") {
+                        var interlinearTag = interlinearSingleTag;
+                        interlinearTextTag[0] = '';
+                        interlinearTextTag[1] = '';
+                    } else if (outPutInterlinearType==="interlinear-text") {
+                        var interlinearTag = interlinearSingleTag;
+                        exampleTag = ['','','',''];
+                    }
+                    
+                }
+
+                var XLingCodeLines = sourceLangLines.split(lineSplit);
+
+                // Iterate through the lines (and words)
+                var OutPutXMLCode = '';
+                var XLingWrdLangEls = [''];
+                var OutPutXMLCodeLines = [''];
+                
+
+                XLingCodeLines.forEach(function(codeLine,codeLineNum) {
+                    // Split each line up by spaces, iterate through each word
+                    XLingWrdLangEls = codeLine.split(wrdSplit);
+
+                    codeLine = ''; // empty the code line array element so that you can fill it with split words
+                    XLingWrdLangEls.forEach(function(wrdEl) {
+                        //Assemble all the words into a single line
+                        codeLine = codeLine + wrdTag[0] + langDataTag[0] + wrdEl + langDataTag[1] + wrdTag[1];
+                    });
+
+                
+                    
+                //Append the newly processed line to the output string
+                OutPutXMLCode = lineTag[0] + codeLine + lineTag[1];
+                
+                //Add a line of matching gloss wrd elements
+                var glossLineCode = '';
+                for (let i = 0; i < XLingWrdLangEls.length; i++) {
+                    glossLineCode = glossLineCode + wrdTag[0] + glossTag[0] + XLingWrdLangEls[i] + glossTag[1] + wrdTag[1];
+                }
+                //Add linegroup, free, interlinear, and example tags to each group according to decisions made above
+                generateExampleNum();
+                generateInterlinearListLetter(codeLineNum+1);
+                OutPutXMLCode = exampleTag[0] + exampleTag[1] + exampleTag[2] + interlinearTag[0] + lineGroupTag[0] + OutPutXMLCode + lineTag[0] + glossLineCode + lineTag[1] + lineGroupTag[1] + freeTag[0] + XLingWrdLangEls.join(' ') + freeTag[1] + interlinearTag[1] + exampleTag[3];
+                OutPutXMLCodeLines[codeLineNum] = OutPutXMLCode;
+                });
+
+                //Add interlinear-text tags to the full output (if there are any)
+                OutPutXMLCode = interlinearTextTag[0] + OutPutXMLCodeLines.join('').trim() + interlinearTextTag[1];
+
+                //Add XLingPaper DTD/etc XML tags, hopefully XLingPaper can recognize this
+                //as useable code instead of just text...
+                OutPutXMLCode = outerXML[0] + OutPutXMLCode + outerXML[1];
+
+                //Add line IDs to interlinear elements IF they're inside an Interlinear-Text root node.
+                // Then Pass what we have to the output function
+                //outputXML(generateInterlinearTextLineIDs(OutPutXMLCode.trim()));
+
+                //Put out code without assigning line IDs to interlinear elements.               
+                outputXML(OutPutXMLCode.trim());
+               
+
+                function generateExampleNum() {
+                    //Generate a new random number for the exampleTag
+                    //(This should be done before each time the tag is added to the output code)
+                    if (parseInt(exampleTag[1])>0) {
+                        exampleTag[1] = Math.floor(Math.random() * 100000) + '';
+                        //console.log('exampleTag: [' + exampleTag.join(',') + ']');
+                    }
+                }
+                function generateInterlinearListLetter(listInterelinearLetter) {
+                    //Update the listInterlinear letter attribute to match the current
+                    //counter (called from for loop)
+                    var exNum;
+                    if (interlinearTag[0].search(/"[^"]+"/) > -1) {
+                        if (interlinearTextTag[0].match(/\d+/g) != null) {
+                                exNum = interlinearTextTag[0].match(/\d+/g) + '.';
+                                interlinearTag[0] = interlinearTag[0].replace(/"[^"]+"/,'"x' + exNum + listInterelinearLetter + '"');
+                            } else {
+                                interlinearTag[0] = interlinearTag[0].replace(/"[^"]+"/,'"x' + Math.floor(Math.random() * 100000) + '"');
+                            }
+                        //console.log('interlinearTag: [' + interlinearTag.join(',') + ']');
+                    }
+                }
+                function generateInterlinearTextLineIDs(ITXLStr) {
+                    if(ITXLStr.search('<interlinear-text')>-1) {
+                        parser = new DOMParser();
+                        var xmlDoc = parser.parseFromString(ITXLStr,"text/xml");
+                        var serializer = new XMLSerializer();
+
+                        var interlinearXLines = xmlDoc.getElementsByTagName("interlinear");
+                        
+
+                        for (i = 0; i < interlinearXLines.length; i++) {
+                            x = i+1;
+                            interlinearXLines[i].setAttribute('text', interlinearTextID + '_' + x);
+                            interlinearXLines[i].setAttribute('textref', interlinearTextID + '_' + x);
+                        }
+                        return serializer.serializeToString(xmlDoc);
+                        
+                    }
+                }
+            }
+            function outputXML(outputXMLCode) {
+                var xmlFile = null,
+                makeTextFile = function (data) {
+
+                    // If we are replacing a previously generated file we need to
+                    // manually revoke the object URL to avoid memory leaks.
+                    if (xmlFile !== null) {
+                    window.URL.revokeObjectURL(xmlFile);
+                    }
+
+                    xmlFile = window.URL.createObjectURL(data);
+
+                    // returns a URL you can use as a href
+                    return xmlFile;
+                    };
+
+                
+
+                var xml = outputXMLCode;
+
+                let iframe = document.getElementById("output_xml");
+                
+                var blob = new Blob([xml], {type: 'application/xml'});
+                myLink = document.getElementById("saveXML");
+                myLink.href=makeTextFile(blob);
+                myLink.setAttribute('download', 'XLingPapInterlinearCode.xml');
+
+                if (navigator.userAgent.indexOf('Firefox') !== -1) {
+                    //output to iFrame in Firefox (because it displays pretty nested XML layout)
+                    iframe.src = window.URL.createObjectURL(blob); 
+                } else {
+                    //Output to textarea in other browsers because they don't format the XML code in a pretty, nested way
+                    //and it looks to the user like something is broken.
+                    document.getElementById('output_text').value = outputXMLCode;
+                    }
+                
+            }
+
+            if (navigator.userAgent.toLowerCase().indexOf(' electron/') > -1) {
+                const electron = require('electron');
+                const clipboard = electron.clipboard;
+                console.log(clipboard.read('utf8'));
+            }
+        </script>
+        <style type="text/css">
+            table {
+                width: 100%;
+            }
+            th {
+                text-align:left;
+                width: min-content;
+                vertical-align:text-top;
+            }
+            td {
+                width: min-content;
+                vertical-align:text-top;
+                
+            }
+            .wrapper {
+                padding: 20px;
+                margin:15px 0;
+            }
+     
+            textarea {
+                width:100%;
+                height: 175px;
+            }
+            iframe {
+                width:100%;
+                height:125px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1 style="text-align:center;">XLingPaper Interlinear Text GUI</h1>
+        <form name="interlinear_text_input" id="interlinear_text_input">
+            <table>
+                <tr><th style="text-align:right;">Interlinear Type:</th><td>
+                    <select name="output_xml_type" id="output_xml_type">
+                        <option name="eX_interlinear">Interlinear Examples</option>
+                        <option name="eX_listInterlinear">List-Interlinear Example</option>
+                        <option name="interlinear-text">Interlinear Text</option>
+                    </select></td></tr>
+                <tr><td colspan='2' class="wrapper"><textarea name="source_text" id="source_text" width="100%"></textarea></td></tr>
+                <tr><td>&nbsp;</td><td style="text-align:center;">
+                    <script>
+                        //Check to see if this is running in Electron. If so, add Copy Button
+                        if (navigator.userAgent.toLowerCase().indexOf(' electron/') > -1) {
+                        // Electron-specific code
+                        //document.write('<a href="javascript:null();">Copy XLingPaper Element(s) to Clipboard</a>&nbsp;');
+                        }
+                    </script>
+                    <a href="javascript:void(0);" id="saveXML">Open/Save XLingPaper Content!</a>&nbsp;<button type="button" onClick="generateCode(document.getElementById('source_text').value,'XLingPaper',document.getElementById('output_xml_type').options[document.getElementById('output_xml_type').selectedIndex].getAttribute('name'));">Generate XLingPaper Content!</button></td></tr>
+                <tr><td colspan='2' class="wrapper" id="outputTD">
+                    <iframe id="output_xml"></iframe>
+                    <textarea name="output_text" id="output_text" width="100%" readonly></textarea>
+                    <script>
+                        if (navigator.userAgent.indexOf('Firefox') !== -1) {
+                            document.getElementById("output_xml").style.display = "block"; //shows the frame in FireFox (because it will display XML Source Code neatly)
+                            document.getElementById("output_text").style.display = "none"; //hides the textarea output element in FireFox
+                        } else {
+                            document.getElementById("output_xml").style.display = "none"; //hides the frame in non-Firefox (usually Chromium) Browsers (because they won't display XML code neatly)
+                            document.getElementById("output_text").style.display = "block"; //shows the textarea output element instead in non-Firefox (usually Chromium) Browsers
+                        }
+                    </script>
+                </td></tr>
+            </table>
+            
+        </form>
+    </body>
+</html>
