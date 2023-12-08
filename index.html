@@ -8,11 +8,15 @@
     // Get the current window location
     var currentLocation = window.location.href;
     
-    // Check if the domain contains the string "GitHub"
-    if (currentLocation.indexOf("rulingants.github.io") !== -1) {
+    // Check if the domain contains either "GitHub" or "rulingants.github.io" (case-insensitive)
+    if (
+      currentLocation.toLowerCase().indexOf("github") !== -1 ||
+      currentLocation.toLowerCase().indexOf("rulingants.github.io") !== -1
+    ) {
       // Redirect to the specified URL
       window.location.href = "https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest";
     }
+
   </script>
 </head>
 <body>
