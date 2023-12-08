@@ -2,6 +2,7 @@
   "name": "ose-interlinear-exporter",
   "productName": "ose-interlinear-exporter",
   "build" : {
+    "artifactName": "${productName} Setup ${version} ${arch}.${ext}",
     "mac": {
       "icon": "app.icns"
     },
