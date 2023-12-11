@@ -2,7 +2,6 @@
   "name": "ose-interlinear-exporter",
   "productName": "ose-interlinear-exporter",
   "build" : {
-    "artifactName": "${productName} Setup ${version} ${arch}.${ext}",
     "mac": {
       "icon": "app.icns"
     },
@@ -13,7 +12,7 @@
   "description": "Exports stories from OneStory Editor as Interlinearized Documents",
   "keywords": [],
   "main": "./main.js",
-  "version": "1.2.4",
+  "version": "1.3.0",
   "author": "Seth Johnston",
   "scripts": {
     "start": "electron ."

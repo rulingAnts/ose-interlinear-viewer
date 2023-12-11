@@ -16,6 +16,40 @@
         console.error("Element with ID '" + elementId + "' not found.");
       }
     }
+    const thisFileName = 'Exported OneStory Story - ' + Date();
+    function downloadHtml() {
+        // Get the HTML content
+        var htmlContent = document.documentElement.outerHTML;
+
+        // Create a Blob (Binary Large Object) with the HTML content
+        var blob = new Blob([htmlContent], { type: 'text/html' });
+
+        // Create a link element
+        var a = document.createElement('a');
+
+        // Set the href attribute of the link to the Blob object
+        a.href = URL.createObjectURL(blob);
+
+        // Set the download attribute to specify the filename
+        a.download = thisFileName + '.html';
+
+        // Append the link to the document body
+        document.body.appendChild(a);
+
+        // Programmatically trigger a click event on the link
+        a.click();
+
+        // Remove the link from the document body
+        document.body.removeChild(a);
+    }
+
+    function toggleDisplay() {
+    var section1 = document.getElementById('sSourceLangText');
+    var checkbox = document.getElementById('toggleCheckbox');
+
+    // Toggle the display style between "none" and "block"
+    section1.style.display = checkbox.checked ? 'block' : 'none';
+  }
       `;
     var resultHTMLScript = '\<script\>\n' + resultHTMLScript + '\n\<\/script\>'
   </script>
@@ -30,6 +64,7 @@
     <xsl:variable name="displayFreeTranslationLines" select="1" />
     <xsl:variable name="generateParatextStyleBT" select="1" />
     <xsl:variable name="generateInterlinearLines" select="1" />
+    <xsl:variable name="displaySourceLanguageText" select="1" />
     <xsl:variable name="displayTestQuestions" select="0" />
     <xsl:variable name="displayRetellings" select="0" />
     <xsl:variable name="displayConsultantNotes" select="0" />
@@ -112,8 +147,14 @@
         
       </head>
       <body>
-        <div align="right"><button onclick="downloadHtml()">Save</button></div>
-        <script src="saveThisDocument.js" />
+        <div align="right" id="saveButtonContainer">
+          Display Source-Language Block Text
+          <xsl:text> </xsl:text>
+          <input type="checkbox" id="toggleCheckbox" onchange="toggleDisplay()" />
+          <xsl:text> </xsl:text><xsl:text> </xsl:text><xsl:text> </xsl:text>
+          <button onclick="downloadHtml()">Save</button>
+        </div>
+        
         <div id="frontMatter">
           <h1><xsl:value-of select="/story/@name" /></h1>
           <h2><xsl:value-of select="$storyCrafter" /></h2>
@@ -133,6 +174,28 @@
               </ul>
           </div>
         </div>
+
+
+          <!-- Call tagBnB template directly -->
+          <div class="section1" id="sSourceLangText">
+            <h3>Source Language Text</h3>
+            <p>
+              <xsl:for-each select="//StoryLine[@lang='Vernacular']">
+                <!-- Apply templates to the child nodes of StoryLine -->
+                <div class="lVernacular">
+                <xsl:variable name="textWithoutBnB">
+                  <xsl:call-template name="removeBnB">
+                    <xsl:with-param name="inputText" select="."/>
+                  </xsl:call-template>
+                </xsl:variable>
+                <xsl:value-of select="$textWithoutBnB"/>
+                <span class="comment">
+                  <xsl:value-of select="../../../@guid" />
+                </span></div>
+              </xsl:for-each>
+            </p>
+          </div>
+
         <xsl:if test="$generateInterlinearLines &gt; 0">      
           <div class="section1" id="s1">
             <h3>Interlinear Back-Translation</h3>
@@ -222,12 +285,12 @@
     <table>
     <tbody>
       <tr><td><table><tbody>
-        <tr>
+        <tr class="lVernacular">
             <xsl:call-template name="tokenizeAndWrap">
             <xsl:with-param name="text" select="."/>
           </xsl:call-template>
         </tr>
-        <tr>
+        <tr class="lGloss">
             <xsl:call-template name="tokenizeAndWrapWithGloss">
             <xsl:with-param name="text" select="following-sibling::*[@lang='NationalBt'][1]" />
           </xsl:call-template>
@@ -256,9 +319,7 @@
   <xsl:choose>
     <xsl:when test="contains($text, ' ')">
       <td>
-        <span class="lVernacular">
           <xsl:value-of select="substring-before($text, ' ')"/>
-        </span>
       </td>
       <!-- Recursive call with the remaining text -->
       <xsl:call-template name="tokenizeAndWrap">
@@ -267,9 +328,7 @@
     </xsl:when>
     <xsl:otherwise>
       <td>
-        <span class="lVernacular">
           <xsl:value-of select="$text"/>
-        </span>
       </td>
     </xsl:otherwise>
   </xsl:choose>
@@ -297,6 +356,27 @@
           <xsl:value-of select="$text"/>
         </span>
       </td>
+    </xsl:otherwise>
+  </xsl:choose>
+</xsl:template>
+
+<!-- Template to remove [B&amp;...B] from the input text -->
+<xsl:template name="removeBnB">
+  <xsl:param name="inputText"/>
+  <xsl:choose>
+    <xsl:when test="contains($inputText, '[B&amp;')">
+      <!-- Recursive call to remove each occurrence -->
+      <xsl:call-template name="removeBnB">
+        <xsl:with-param name="inputText" select="substring-before($inputText, '[B&amp;')"/>
+      </xsl:call-template>
+      <!-- Continue processing the rest of the text after [B&amp;...] -->
+      <xsl:call-template name="removeBnB">
+        <xsl:with-param name="inputText" select="substring-after($inputText, ']')"/>
+      </xsl:call-template>
+    </xsl:when>
+    <xsl:otherwise>
+      <!-- No more occurrences, output the remaining text -->
+      <xsl:value-of select="$inputText"/>
     </xsl:otherwise>
   </xsl:choose>
 </xsl:template>
