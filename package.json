@@ -1,6 +1,6 @@
 {
-  "name": "ose-interlinear-exporter",
-  "productName": "ose-interlinear-exporter",
+  "name": "ose-interlinear-viewer",
+  "productName": "ose-interlinear-viewer",
   "build" : {
     "mac": {
       "icon": "app.icns"
