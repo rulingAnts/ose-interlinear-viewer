@@ -364,6 +364,9 @@ function goBack() {
 </script>
 </head>
 <body>
+  <div id="browserWarning" style="color: red;">
+    Warning: You appear to be using an unsupported browser. Also make sure JavaScript is not disabled. This app likely will not work with your current browser and settings. Please use Microsoft Edge, Google Chrome, or Safari or <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">download the latest Windows version</a> of this app.
+  </div>
   <center style="margin-top:30px;">
 <table>
   <thead>
@@ -398,15 +401,52 @@ function goBack() {
 
 <span hidden><pre id="output"></pre></span>
 <script>
-  // Redirect and show alert if not Chromium-based
-function checkBrowser() {
-    if (!isChromiumBased()) {
-        // Show an alert message
-        alert("This web app only supports Chromium-based browsers. Please use Microsoft Edge, Google Chrome, or Safari, or download the Windows application version of this product. You will be redirected now to the download page.");
-
-        // Redirect to a specific page
-        window.location.href = "https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest";
+// Check if the browser is Chromium-based
+function isChromiumBased() {
+      if (navigator.userAgentData && navigator.userAgentData.brands) {
+        // Check if the browser is Chrome, Edge, or Safari
+        return (
+          navigator.userAgentData.brands.some((brand) =>
+            ["Google Chrome", "Microsoft Edge", "Apple"].includes(brand.brand)
+          ) ||
+          navigator.userAgentData.mobile &&
+            navigator.userAgentData.mobile.brands.some((brand) =>
+              ["Google Chrome", "Microsoft Edge", "Safari"].includes(brand.brand)
+            )
+        );
+      } else {
+        // Fallback to checking userAgent
+        var userAgent = navigator.userAgent.toLowerCase();
+        return userAgent.includes("edg") || userAgent.includes("chrome") || userAgent.includes("safari");
+      }
     }
+
+    // Remove warning content if Chromium-based
+    function removeWarningIfChromiumBased() {
+      if (isChromiumBased()) {
+        var warningDiv = document.getElementById("browserWarning");
+        if (warningDiv) {
+          warningDiv.innerHTML = ""; // Remove the content of the warning div
+        }
+      }
+    }
+
+    // Call the function when the page is loaded
+    removeWarningIfChromiumBased();
+
+function navigateTo(path) {
+  window.location.href = path;
+}
+
+// Redirect and show alert if not Chromium-based
+function checkBrowser() {
+  if (!isChromiumBased()) {
+      // Show an alert message
+      alert("This web app only supports Chromium-based browsers. Please use Microsoft Edge, Google Chrome, or Safari, make sure JavaScript is not disabled, or download the Windows application version of this product. You will be redirected now to the download page.");
+
+      // Redirect to a specific page
+      window.location.href = "https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest";
+  }
 }
 
 // Call the function when the page is loaded
