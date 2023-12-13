@@ -4,3 +4,4 @@ dist
 package.json.txt
 package-lock.jso
 settings.json
+.vscode
