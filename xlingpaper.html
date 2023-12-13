@@ -397,5 +397,20 @@ function goBack() {
   </table></center>
 
 <span hidden><pre id="output"></pre></span>
+<script>
+  // Redirect and show alert if not Chromium-based
+function checkBrowser() {
+    if (!isChromiumBased()) {
+        // Show an alert message
+        alert("This web app only supports Chromium-based browsers. Please use Microsoft Edge, Google Chrome, or Safari, or download the Windows application version of this product. You will be redirected now to the download page.");
+
+        // Redirect to a specific page
+        window.location.href = "https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest";
+    }
+}
+
+// Call the function when the page is loaded
+checkBrowser();
+</script>
 </body>
 </html>
