@@ -28,7 +28,7 @@
   </table></center>
 
 <span hidden><pre id="output"></pre></span>
-
+<div id="message" style="display:block;margin-left:25%;margin-right:25%;margin-top:30pt;"></div>
 <script>
   // Check if the browser is supported (Chromium-based, Electron, or WebKit)
   function isSupportedBrowser() {
@@ -81,6 +81,32 @@
   
       // Call the function when the page is loaded
       removeWarningIfSupportedBrowser();
+
+      
+  </script>
+  <script>
+
+        if (navigator.userAgentData && navigator.userAgentData.brands) {
+          // Check if the browser is Chrome, Edge, or Safari
+          var isChromium =
+            navigator.userAgentData.brands.some((brand) =>
+              ["Chromium"].includes(brand.brand)
+            ) ||
+            (navigator.userAgentData.mobile &&
+              navigator.userAgentData.mobile.brands.some((brand) =>
+                ["Chromium"].includes(brand.brand)
+              ));
+          displayMessage('You are using the OneStory Interlinear Viewer Desktop App. Be sure to <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">check the website</a> for the latest version.');
+         
+        } else {
+          displayMessage('You are using the Web-Based Version of OneStory Interlinear Viewer. It will likely contain more recent changes than the Desktop version, but may also contain some experimental features that may or may not yet work reliably. You can find the stable, Windows Desktop Version <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">here</a>.');
+          console.log("UserAgentData:", JSON.stringify(navigator.userAgentData))
+        }
+
+      function displayMessage(message) {
+        var messageElement = document.getElementById('message');
+        messageElement.innerHTML = message;
+      }
   </script>
 </body>
 </html>
