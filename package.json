@@ -1,7 +1,7 @@
 {
   "name": "ose-interlinear-viewer",
   "productName": "ose-interlinear-viewer",
-  "build" : {
+  "build": {
     "mac": {
       "icon": "app.icns"
     },

@@ -407,17 +407,17 @@ function isChromiumBased() {
         // Check if the browser is Chrome, Edge, or Safari
         return (
           navigator.userAgentData.brands.some((brand) =>
-            ["Google Chrome", "Microsoft Edge", "Apple"].includes(brand.brand)
+            ["Google Chrome", "Microsoft Edge", "Apple", "Chromium"].includes(brand.brand)
           ) ||
           navigator.userAgentData.mobile &&
             navigator.userAgentData.mobile.brands.some((brand) =>
-              ["Google Chrome", "Microsoft Edge", "Safari"].includes(brand.brand)
+              ["Google Chrome", "Microsoft Edge", "Safari", "Chromium"].includes(brand.brand)
             )
         );
       } else {
         // Fallback to checking userAgent
         var userAgent = navigator.userAgent.toLowerCase();
-        return userAgent.includes("edg") || userAgent.includes("chrome") || userAgent.includes("safari");
+        return userAgent.includes("edg") || userAgent.includes("chrome") || userAgent.includes("safari")|| userAgent.includes("electron");
       }
     }
 

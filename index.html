@@ -25,56 +25,54 @@
 <span hidden><pre id="output"></pre></span>
 </body>
 <script>
-// Check if the browser is Chromium-based
-function isChromiumBased() {
+// Check if the browser is supported (Chromium-based, Electron, or WebKit)
+function isSupportedBrowser() {
       if (navigator.userAgentData && navigator.userAgentData.brands) {
         // Check if the browser is Chrome, Edge, or Safari
-        return (
+        var isChromiumBased =
           navigator.userAgentData.brands.some((brand) =>
-            ["Google Chrome", "Microsoft Edge", "Apple"].includes(brand.brand)
+            ["Google Chrome", "Microsoft Edge", "Apple", "Chromium"].includes(brand.brand)
           ) ||
-          navigator.userAgentData.mobile &&
+          (navigator.userAgentData.mobile &&
             navigator.userAgentData.mobile.brands.some((brand) =>
-              ["Google Chrome", "Microsoft Edge", "Safari"].includes(brand.brand)
-            )
-        );
+              ["Google Chrome", "Microsoft Edge", "Safari", "Chromium"].includes(brand.brand)
+            ));
+
+        if (!isChromiumBased) {
+          console.log("UserAgentData:", JSON.stringify(navigator.userAgentData));
+        }
+
+        return isChromiumBased;
       } else {
         // Fallback to checking userAgent
         var userAgent = navigator.userAgent.toLowerCase();
-        return userAgent.includes("edg") || userAgent.includes("chrome") || userAgent.includes("safari");
+        var isSupported =
+          userAgent.includes("edg") ||
+          userAgent.includes("chrome") ||
+          userAgent.includes("safari") ||
+          userAgent.includes("electron") || // Check for Electron
+          userAgent.includes("applewebkit"); // Check for WebKit
+
+        if (!isSupported) {
+          console.log("UserAgent:", userAgent);
+        }
+
+        return isSupported;
       }
     }
 
-    // Remove warning content if Chromium-based
-    function removeWarningIfChromiumBased() {
-      if (isChromiumBased()) {
+    // Remove warning content if supported browser
+    function removeWarningIfSupportedBrowser() {
+      if (isSupportedBrowser()) {
         var warningDiv = document.getElementById("browserWarning");
         if (warningDiv) {
           warningDiv.innerHTML = ""; // Remove the content of the warning div
+          window.location.href = "https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest";
         }
       }
     }
 
     // Call the function when the page is loaded
-    removeWarningIfChromiumBased();
-
-  function navigateTo(path) {
-    window.location.href = path;
-  }
-
-// Redirect and show alert if not Chromium-based
-function checkBrowser() {
-    if (!isChromiumBased()) {
-        // Show an alert message
-        alert("This web app only supports Chromium-based browsers. Please use Microsoft Edge, Google Chrome, or Safari, make sure JavaScript is not disabled, or download the Windows application version of this product. You will be redirected now to the download page.");
-
-        // Redirect to a specific page
-        window.location.href = "https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest";
-    }
-}
-
-// Call the function when the page is loaded
-checkBrowser();
-
+    removeWarningIfSupportedBrowser();
 </script>
 </html>
