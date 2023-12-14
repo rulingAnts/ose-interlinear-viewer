@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>One-Story Editor Interlinearizer</title>
+  <script>
+    function navigateTo(newURL) {
+      window.location.href=newURL;
+    }
+  </script>
 </head>
 <body>
   <div id="browserWarning" style="color: red;">
@@ -23,56 +28,59 @@
   </table></center>
 
 <span hidden><pre id="output"></pre></span>
-</body>
+
 <script>
-// Check if the browser is supported (Chromium-based, Electron, or WebKit)
-function isSupportedBrowser() {
-      if (navigator.userAgentData && navigator.userAgentData.brands) {
-        // Check if the browser is Chrome, Edge, or Safari
-        var isChromiumBased =
-          navigator.userAgentData.brands.some((brand) =>
-            ["Google Chrome", "Microsoft Edge", "Apple", "Chromium"].includes(brand.brand)
-          ) ||
-          (navigator.userAgentData.mobile &&
-            navigator.userAgentData.mobile.brands.some((brand) =>
-              ["Google Chrome", "Microsoft Edge", "Safari", "Chromium"].includes(brand.brand)
-            ));
-
-        if (!isChromiumBased) {
-          console.log("UserAgentData:", JSON.stringify(navigator.userAgentData));
-        }
-
-        return isChromiumBased;
-      } else {
-        // Fallback to checking userAgent
-        var userAgent = navigator.userAgent.toLowerCase();
-        var isSupported =
-          userAgent.includes("edg") ||
-          userAgent.includes("chrome") ||
-          userAgent.includes("safari") ||
-          userAgent.includes("electron") || // Check for Electron
-          userAgent.includes("applewebkit"); // Check for WebKit
-
-        if (!isSupported) {
-          console.log("UserAgent:", userAgent);
-        }
-
-        return isSupported;
-      }
-    }
-
-    // Remove warning content if supported browser
-    function removeWarningIfSupportedBrowser() {
-      if (isSupportedBrowser()) {
-        var warningDiv = document.getElementById("browserWarning");
-        if (warningDiv) {
-          warningDiv.innerHTML = ""; // Remove the content of the warning div
-          window.location.href = "https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest";
+  // Check if the browser is supported (Chromium-based, Electron, or WebKit)
+  function isSupportedBrowser() {
+        if (navigator.userAgentData && navigator.userAgentData.brands) {
+          // Check if the browser is Chrome, Edge, or Safari
+          var isChromiumBased =
+            navigator.userAgentData.brands.some((brand) =>
+              ["Google Chrome", "Microsoft Edge", "Apple", "Chromium"].includes(brand.brand)
+            ) ||
+            (navigator.userAgentData.mobile &&
+              navigator.userAgentData.mobile.brands.some((brand) =>
+                ["Google Chrome", "Microsoft Edge", "Safari", "Chromium"].includes(brand.brand)
+              ));
+  
+          if (!isChromiumBased) {
+            console.log("UserAgentData:", JSON.stringify(navigator.userAgentData));
+          }
+  
+          return isChromiumBased;
+        } else {
+          // Fallback to checking userAgent
+          var userAgent = navigator.userAgent.toLowerCase();
+          var isSupported =
+            userAgent.includes("edg") ||
+            userAgent.includes("chrome") ||
+            userAgent.includes("safari") ||
+            userAgent.includes("chromium") || // Check for Electron
+            userAgent.includes("applewebkit"); // Check for WebKit
+  
+          if (!isSupported) {
+            console.log("UserAgent:", userAgent);
+          }
+  
+          return isSupported;
         }
       }
-    }
-
-    // Call the function when the page is loaded
-    removeWarningIfSupportedBrowser();
-</script>
+  
+      // Remove warning content if supported browser
+      function removeWarningIfSupportedBrowser() {
+        if (isSupportedBrowser()) {
+          var warningDiv = document.getElementById("browserWarning");
+          if (warningDiv) {
+            warningDiv.innerHTML = ""; // Remove the content of the warning div
+          } 
+        } else {
+            alert("You appear to be using an unsupported browser. This web app only supports Google Chrome, Safari, or Microsoft Edge. Please use a supported browser, or download the standalone Windows version of this app. You will be redirected to the download page now.")
+            navigateTo("https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest");
+          }
+      }
+  
+      // Call the function when the page is loaded
+      removeWarningIfSupportedBrowser();
+  </script>
+</body>
 </html>
