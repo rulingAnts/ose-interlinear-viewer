@@ -6,7 +6,7 @@ Imports stories from OneStory Editor data file and displays or exports them as I
 
 Here's how to use this app:
 
-1. Download the portable version (/dist/ose-interlinear-exporter<version>.exe) or use the MSI installer 
+1. Download the portable version (/dist/ose-interlinear-exporter<version>.exe) or use the MSI installer (link [here](https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest))
 
 2. Double-click the portable version you downloaded (ose-interlinear-exporter<version>) or use the start menu or desktop shortcut to launch the program you just installed (if you used the installer).
 
