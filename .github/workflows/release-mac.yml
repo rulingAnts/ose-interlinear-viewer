@@ -1,0 +1,64 @@
+name: Build & Release (Mac only)
+
+# Manually triggered. Builds only the macOS arm64 binary and uploads it
+# to the existing GitHub Release that matches the given tag.
+# Use this to re-run a failed Mac build without re-triggering Windows.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to upload to (e.g. v2.0.0). Defaults to the latest tag.'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  build-mac:
+    runs-on: macos-14
+
+    steps:
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ -n "${{ inputs.tag }}" ]; then
+            echo "name=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=$(git describe --tags --abbrev=0)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.tag.outputs.name }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Cache Rust build artifacts
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - run: npm ci
+
+      - name: Generate app icons from icon.png
+        run: npx tauri icon icon.png
+
+      - name: Build and upload to release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ steps.tag.outputs.name }}
+          releaseName: ${{ steps.tag.outputs.name }}
+          releaseDraft: false
+          prerelease: false
+          args: --target aarch64-apple-darwin
