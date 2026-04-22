@@ -41,7 +41,7 @@
 // *** UPDATE THIS STRING ON EVERY DEPLOY ***
 // Any change here changes this file, which triggers a fresh
 // SW install and cache replacement for all users on next load.
-const CACHE_VERSION = '2026-04-22T13:12:43Z';
+const CACHE_VERSION = '2026-04-22T14:57:49Z';
 const CACHE_NAME = 'ose-interlinear-' + CACHE_VERSION;
 
 // All files that make up the app shell.
@@ -54,6 +54,7 @@ const APP_SHELL = [
   './tsv.html',
   './flextext.html',
   './styles.css',
+  './ext-links.js',
   './renderer.js',
   './sw.js',
 ];

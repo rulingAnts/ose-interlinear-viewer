@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OneStory Interlinearizer</title>
   <link rel="stylesheet" href="./styles.css">
+  <script src="./ext-links.js" defer></script>
   <script>
     function navigateTo(newURL) {
       window.location.href = newURL;
@@ -96,27 +97,18 @@
           || ua.includes("safari") || ua.includes("chromium") || ua.includes("applewebkit");
     }
 
-    function isElectron() {
-      // Electron always injects "Electron/x.x.x" into the UA string.
-      // This is more reliable than inspecting userAgentData brands,
-      // which can vary across Chromium versions and build configurations.
-      return /\bElectron\//.test(navigator.userAgent);
-    }
-
     const warning = document.getElementById('browserWarning');
     const message = document.getElementById('message');
 
-    if (isFirefox()) {
+    if (window.__TAURI__) {
+      message.innerHTML = 'Running as desktop app. <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">Check for updates</a>.';
+    } else if (isFirefox()) {
       warning.innerHTML = 'This app does not work correctly in Firefox. Please use Chrome or Edge — or <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">download the Windows desktop app</a>.';
       document.querySelector('.card').style.display = 'none';
     } else if (!isSupportedBrowser()) {
       warning.innerHTML = 'Unsupported browser detected. Please use Chrome, Edge, or Safari — or <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">download the Windows app</a>.';
       alert("This app requires Chrome, Edge, or Safari. You will be redirected to the download page.");
       window.location.href = "https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest";
-    } else if (isElectron() && location.protocol === 'file:') {
-      // Only show "desktop app" when loaded from file:// — the actual packaged desktop app.
-      // VS Code Live Preview also runs in Electron but serves from localhost, so this excludes it.
-      message.innerHTML = 'Running as desktop app. <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">Check for updates</a>.';
     } else {
       message.innerHTML = 'Web version &mdash; may include experimental changes. Stable <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">Windows desktop app here</a>.';
     }

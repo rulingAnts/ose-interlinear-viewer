@@ -303,12 +303,20 @@
       const resultString = new XMLSerializer().serializeToString(resultDoc);
       output.textContent = resultString;
       
-      // Output a file for the user to download (commented out for now).
-      const blob = new Blob([resultString], { type: 'text/xml' });
-      const link = document.createElement('a');
-      link.href = window.URL.createObjectURL(blob);
-      link.download = newXMLFileName + '.xml';
-      link.click();
+      if (window.__TAURI__) {
+        window.__TAURI__.core.invoke('save_file', {
+          content: resultString,
+          defaultName: newXMLFileName + '.xml',
+          filterName: 'XLingPaper XML',
+          extensions: ['xml'],
+        }).catch(err => alert('Save failed: ' + err));
+      } else {
+        const blob = new Blob([resultString], { type: 'text/xml' });
+        const link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        link.download = newXMLFileName + '.xml';
+        link.click();
+      }
 
       // Display the XML code in a new browser tab with text/plain MIME type
       //var newWindow = window.open();
@@ -362,6 +370,7 @@ function goBack() {
 
 </script>
   <link rel="stylesheet" href="./styles.css">
+  <script src="./ext-links.js" defer></script>
 </head>
 <body>
   <div class="container">
@@ -417,6 +426,19 @@ function goBack() {
 
         <div class="generate-row">
           <button class="btn btn-accent" onclick="transformStory()">Generate XLingPaper Document ›</button>
+        </div>
+
+        <div style="margin-top:28px; padding-top:24px; border-top:1px solid var(--border);">
+          <p style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:14px;">
+            Opening in XLingPaper &amp; producing a PDF
+          </p>
+          <ol style="color:var(--text-muted);font-size:0.8125rem;line-height:1.7;padding-left:18px;">
+            <li>Save the generated .xml file using the button above.</li>
+            <li>Open <a href="https://software.sil.org/xlingpaper/" target="_blank" rel="noopener noreferrer" style="color:var(--accent);">XLingPaper</a> (part of the SIL software suite). If you don't have it, download it from <a href="https://software.sil.org/xlingpaper/" target="_blank" rel="noopener noreferrer" style="color:var(--accent);">software.sil.org/xlingpaper</a>.</li>
+            <li>In XLingPaper, choose <strong style="color:var(--text);">File › Open</strong> and select the .xml file you just saved.</li>
+            <li>Review the document. When ready, choose <strong style="color:var(--text);">XLingPaper › Produce PDF</strong>. XLingPaper includes everything needed to generate the PDF — no additional software required.</li>
+            <li>XLingPaper can also export to OpenOffice, Web Page, or Ebook via the same <strong style="color:var(--text);">XLingPaper</strong> menu. (There is also a <strong style="color:var(--text);">Produce PDF (RenderX)</strong> option for an alternate PDF rendering engine.)</li>
+          </ol>
         </div>
       </div>
     </div>

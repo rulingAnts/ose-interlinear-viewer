@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OneStory Interlinearizer — FLExText Export</title>
   <link rel="stylesheet" href="./styles.css">
+  <script src="./ext-links.js" defer></script>
   <style>
     .ws-warning {
       background: rgba(251, 191, 36, 0.08);
@@ -288,10 +289,20 @@
     const xml = buildFLExText(storyNodes[selectedIndex], vernWS, glossWS, freeWS);
     const storyName = storyNodes[selectedIndex].getAttribute('name') || 'story';
 
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(new Blob([xml], { type: 'application/xml' }));
-    link.download = storyName.replace(/[\\/:*?"<>|]/g, '_') + '.flextext';
-    link.click();
+    const filename = storyName.replace(/[\\/:*?"<>|]/g, '_') + '.flextext';
+    if (window.__TAURI__) {
+      window.__TAURI__.core.invoke('save_file', {
+        content: xml,
+        defaultName: filename,
+        filterName: 'FLExText',
+        extensions: ['flextext'],
+      }).catch(err => alert('Save failed: ' + err));
+    } else {
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(new Blob([xml], { type: 'application/xml' }));
+      link.download = filename;
+      link.click();
+    }
   }
 
   function goBack() { window.history.back(); }
@@ -388,6 +399,7 @@
         </p>
         <ol style="color:var(--text-muted);font-size:0.8125rem;line-height:1.7;padding-left:18px;">
           <li>In FLEx, open the project you want to import into.</li>
+          <li>Switch to the <strong style="color:var(--text);">Texts &amp; Words → Interlinear Texts</strong> view. You should see tabs for <strong style="color:var(--text);">Baseline</strong>, <strong style="color:var(--text);">Gloss</strong>, <strong style="color:var(--text);">Analyze</strong>, <strong style="color:var(--text);">Tag</strong>, and <strong style="color:var(--text);">Chart</strong> — the <em>FLExText Interlinear</em> import option only appears on the File menu when you are in this view.</li>
           <li>Go to <strong style="color:var(--text);">File → Import → FLExText Interlinear</strong>.</li>
           <li>Browse to the <code>.flextext</code> file you just downloaded and click <strong style="color:var(--text);">Open</strong>.</li>
           <li>FLEx will show a preview of the import. Confirm the writing systems look correct — they should match the codes you entered above. If you see unexpected writing systems listed, cancel and double-check your codes.</li>
