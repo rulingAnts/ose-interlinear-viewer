@@ -9,6 +9,19 @@
       window.location.href=newURL;
     }
   </script>
+  <script>
+    // Register the service worker so the app works offline and stays
+    // up-to-date. registration.update() is called on every load to force
+    // the browser to check sw.js against the server — if CACHE_VERSION
+    // changed (new deploy), the new SW installs and activates immediately.
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => reg.update())
+          .catch(err => console.warn('Service worker registration failed:', err));
+      });
+    }
+  </script>
 </head>
 <body>
   <div id="browserWarning" style="color: red;">
@@ -23,7 +36,7 @@
   <tbody>
     <tr><td><button onclick="navigateTo('./xlingpaper.html');">XLingPaper</button></td></tr>
     <tr><td><button onclick="navigateTo('./html.html');">Web Page</button></td></tr>
-    <tr><td><button onclick="navigateTo('./tsv.html');">Tab-Separated (TSV)</button></td></tr>
+    <tr><td><button onclick="navigateTo('./tsv.html');">Spreadsheet-Compatible Text: Tab-Separated (TSV)</button></td></tr>
     <tr hidden><td><button onclick="navigateTo('./word-writer.html');">OpenOffice Writer/MS Word</button></td></tr>
   </tbody>
   </table></center>
