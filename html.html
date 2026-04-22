@@ -444,9 +444,18 @@
       const xsltDoc = new DOMParser().parseFromString(xsltContent, 'application/xml');
       xsltProcessor.importStylesheet(xsltDoc);
 
-      const resultDoc = xsltProcessor.transformToDocument(selectedStoryNode);
-
-      let resultString = new XMLSerializer().serializeToString(resultDoc);
+      let resultString;
+      if (/Firefox\//.test(navigator.userAgent)) {
+        // Firefox bug: transformToDocument wraps the result in <transformiix:result>.
+        // transformToFragment returns the actual result tree without the wrapper.
+        const ownerDoc = document.implementation.createDocument(null, null, null);
+        const resultFrag = xsltProcessor.transformToFragment(selectedStoryNode, ownerDoc);
+        resultString = new XMLSerializer().serializeToString(resultFrag);
+      } else {
+        resultString = new XMLSerializer().serializeToString(
+          xsltProcessor.transformToDocument(selectedStoryNode)
+        );
+      }
       
       // Insert the resultHTMLScript before </head>
       var headIndex = resultString.indexOf('</head>');
@@ -457,24 +466,16 @@
       }
       
       output.textContent = resultString;
-      
-      // Output a file for the user to download (commented out for now).
-      //const blob = new Blob([resultString], { type: 'text/xml' });
-      //const link = document.createElement('a');
-      //link.href = window.URL.createObjectURL(blob);
-      //link.download = newXMLFileName + '.xml';
-      //link.click();
 
-      // Function to escape HTML characters to prevent XSS
-      //function escapeHTML(html) {
-      //  return html.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      // Open a new window and set its content
-    const newWindow = window.open('', '_blank', 'width=1000,height=800,scrollbars=yes,menubar=yes');
-      newWindow.document.write(resultString);
-      newWindow.document.close();
-
-    // Optionally, you can focus the new window
-    //newWindow.focus();
+      // Open via a blob URL so Firefox and Chrome both render it correctly.
+      // document.write() into a blank window doesn't work reliably in Firefox.
+      const blob = new Blob([resultString], { type: 'text/html; charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const newWindow = window.open(url, '_blank', 'width=1000,height=800,scrollbars=yes,menubar=yes');
+      if (!newWindow) {
+        alert('Popup was blocked. Please allow popups for this site and try again.');
+        URL.revokeObjectURL(url);
+      }
 
     } else {
       alert('Please select a story before transforming.');
@@ -551,7 +552,7 @@ function goBack() {
 
           <div class="form-row">
             <label class="form-label" for="storySelect">Story</label>
-            <select id="storySelect" style="flex:1;" onchange="document.getElementById('xmlFileName').value=this.options[storySelect.selectedIndex].innerText">
+            <select id="storySelect" style="flex:1;">
               <option>Select a story</option>
             </select>
           </div>
@@ -563,12 +564,6 @@ function goBack() {
               <option value="paratextStyle">Paratext Style</option>
               <option value="bothStyles" selected>Both</option>
             </select>
-          </div>
-
-          <div class="form-row">
-            <label class="form-label" for="xmlFileName">Save as</label>
-            <input type="text" id="xmlFileName" value="NewXLingPaperDocument" />
-            <span class="filename-suffix">.xml</span>
           </div>
         </div>
 

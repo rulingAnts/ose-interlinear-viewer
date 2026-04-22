@@ -299,9 +299,20 @@
       const xsltDoc = new DOMParser().parseFromString(xsltContent, 'application/xml');
       xsltProcessor.importStylesheet(xsltDoc);
 
-      const resultDoc = xsltProcessor.transformToDocument(selectedStoryNode);
-
-      const resultString = new XMLSerializer().serializeToString(resultDoc);
+      let resultString;
+      if (/Firefox\//.test(navigator.userAgent)) {
+        // Firefox bug: transformToDocument wraps the result in <transformiix:result> instead of
+        // the actual root element. transformToFragment doesn't have this issue.
+        // We then manually prepend the XML declaration and DOCTYPE that xsl:output would normally inject.
+        const ownerDoc = document.implementation.createDocument(null, null, null);
+        const resultFrag = xsltProcessor.transformToFragment(selectedStoryNode, ownerDoc);
+        resultString = '<?xml version="1.0" encoding="UTF-8"?>\n' +
+                       '<!DOCTYPE lingPaper PUBLIC "-//XMLmind//DTD XLingPap//EN" "/Transforms/XLingPap.dtd">\n' +
+                       new XMLSerializer().serializeToString(resultFrag);
+      } else {
+        const resultDoc = xsltProcessor.transformToDocument(selectedStoryNode);
+        resultString = new XMLSerializer().serializeToString(resultDoc);
+      }
       output.textContent = resultString;
       
       // Output a file for the user to download (commented out for now).
