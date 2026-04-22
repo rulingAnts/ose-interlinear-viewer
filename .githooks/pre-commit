@@ -11,9 +11,9 @@ TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 # Replace the CACHE_VERSION value in sw.js in-place.
 # The sed -i '' form is required on macOS; Linux uses sed -i without the ''.
 if sed --version 2>/dev/null | grep -q GNU; then
-  sed -i "s|const CACHE_VERSION = '[^']*'|const CACHE_VERSION = '$TIMESTAMP'|" sw.js
+  sed -i "s|const CACHE_VERSION = '[^']*'|const CACHE_VERSION = '$TIMESTAMP'|" docs/sw.js
 else
-  sed -i '' "s|const CACHE_VERSION = '[^']*'|const CACHE_VERSION = '$TIMESTAMP'|" sw.js
+  sed -i '' "s|const CACHE_VERSION = '[^']*'|const CACHE_VERSION = '$TIMESTAMP'|" docs/sw.js
 fi
 
-git add sw.js
+git add docs/sw.js
