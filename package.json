@@ -15,7 +15,8 @@
   "version": "1.3.0",
   "author": "Seth Johnston",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "prepare": "git config core.hooksPath .githooks"
   },
   "devDependencies": {
     "electron": "^41.2.2"
