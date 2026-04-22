@@ -85,26 +85,25 @@
           ["Google Chrome", "Microsoft Edge", "Apple", "Chromium"].includes(b.brand)
         );
       }
+      // Firefox lacks userAgentData entirely — detect it via UA string.
       const ua = navigator.userAgent.toLowerCase();
-      return ua.includes("edg") || ua.includes("chrome") || ua.includes("safari")
-          || ua.includes("chromium") || ua.includes("applewebkit");
+      return ua.includes("firefox") || ua.includes("edg") || ua.includes("chrome")
+          || ua.includes("safari") || ua.includes("chromium") || ua.includes("applewebkit");
     }
 
     function isElectron() {
-      if (navigator.userAgentData && navigator.userAgentData.brands) {
-        return navigator.userAgentData.brands.some(b => b.brand === "Chromium")
-            && !navigator.userAgentData.brands.some(b =>
-                ["Google Chrome", "Microsoft Edge"].includes(b.brand));
-      }
-      return navigator.userAgent.toLowerCase().includes("electron");
+      // Electron always injects "Electron/x.x.x" into the UA string.
+      // This is more reliable than inspecting userAgentData brands,
+      // which can vary across Chromium versions and build configurations.
+      return /\bElectron\//.test(navigator.userAgent);
     }
 
     const warning = document.getElementById('browserWarning');
     const message = document.getElementById('message');
 
     if (!isSupportedBrowser()) {
-      warning.innerHTML = 'Unsupported browser detected. Please use Chrome, Edge, or Safari — or <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">download the Windows app</a>.';
-      alert("This app requires Chrome, Edge, or Safari. You will be redirected to the download page.");
+      warning.innerHTML = 'Unsupported browser detected. Please use Chrome, Edge, Firefox, or Safari — or <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">download the Windows app</a>.';
+      alert("This app requires Chrome, Edge, Firefox, or Safari. You will be redirected to the download page.");
       window.location.href = "https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest";
     } else if (isElectron()) {
       message.innerHTML = 'Running as desktop app. <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">Check for updates</a>.';

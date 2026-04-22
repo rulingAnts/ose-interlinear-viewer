@@ -368,11 +368,10 @@
             is messy to clean up.<br><br>
             To find your codes in FLEx:
             <span class="ws-path">Tools → Configure Writing Systems → [select WS] → General tab → Code field</span><br><br>
-            For detailed instructions, see the
-            <a href="https://github.com/rulingAnts/FlexText-Excel-Import/" target="_blank" rel="noopener">
-              FlexText Excel Import project ↗
+            For detailed instructions, see
+            <a href="https://rulingants.github.io/FlexText-Excel-Import/writing-system-codes.html" target="_blank" rel="noopener">
+              How to find your writing system codes ↗
             </a>
-            (check the <code>docs/</code> folder for writing system guidance).
           </div>
 
         </div>
@@ -380,6 +379,24 @@
         <div class="generate-row">
           <button class="btn btn-accent" onclick="generateFLExText()">Download FLExText ›</button>
         </div>
+      </div>
+
+      <!-- Import instructions -->
+      <div style="margin-top:28px; padding-top:24px; border-top:1px solid var(--border);">
+        <p style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:14px;">
+          How to import into FLEx
+        </p>
+        <ol style="color:var(--text-muted);font-size:0.8125rem;line-height:1.7;padding-left:18px;">
+          <li>In FLEx, open the project you want to import into.</li>
+          <li>Go to <strong style="color:var(--text);">File → Import → FLExText Interlinear</strong>.</li>
+          <li>Browse to the <code>.flextext</code> file you just downloaded and click <strong style="color:var(--text);">Open</strong>.</li>
+          <li>FLEx will show a preview of the import. Confirm the writing systems look correct — they should match the codes you entered above. If you see unexpected writing systems listed, cancel and double-check your codes.</li>
+          <li>Click <strong style="color:var(--text);">Import</strong>. The story will appear in your Texts &amp; Words list.</li>
+        </ol>
+        <p style="color:var(--text-muted);font-size:0.8125rem;margin-top:10px;line-height:1.6;">
+          After import, open the text in the interlinear editor to review and approve the word analyses.
+          Each verse is imported as a separate paragraph.
+        </p>
       </div>
     </div>
   </div>
@@ -392,13 +409,13 @@
       );
     }
     const ua = navigator.userAgent.toLowerCase();
-    return ua.includes("edg") || ua.includes("chrome") || ua.includes("safari")
-        || ua.includes("chromium") || ua.includes("applewebkit");
+    return ua.includes("firefox") || ua.includes("edg") || ua.includes("chrome")
+        || ua.includes("safari") || ua.includes("chromium") || ua.includes("applewebkit");
   }
   const _w = document.getElementById('browserWarning');
   if (!isSupportedBrowser()) {
-    _w.innerHTML = 'Unsupported browser. Please use Chrome, Edge, or Safari — or <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">download the Windows app</a>.';
-    alert("This app requires Chrome, Edge, or Safari. You will be redirected to the download page.");
+    _w.innerHTML = 'Unsupported browser. Please use Chrome, Edge, Firefox, or Safari — or <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">download the Windows app</a>.';
+    alert("This app requires Chrome, Edge, Firefox, or Safari. You will be redirected to the download page.");
     window.location.href = "https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest";
   }
   </script>
