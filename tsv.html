@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OneStory Interlinearizer — TSV Export</title>
   <link rel="stylesheet" href="./styles.css">
+  <script src="./ext-links.js" defer></script>
   <script>
   // ============================================================
   // OSE INTERLINEAR → TSV TRANSFORMATION
@@ -187,10 +188,20 @@
 
     // --- Serialize and download ---
     const tsv = rows.map(r => r.join('\t')).join('\n');
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(new Blob([tsv], { type: 'text/tab-separated-values' }));
-    link.download = escapeVal(storyName) + '.tsv';
-    link.click();
+    const filename = escapeVal(storyName) + '.tsv';
+    if (window.__TAURI__) {
+      window.__TAURI__.core.invoke('save_file', {
+        content: tsv,
+        defaultName: filename,
+        filterName: 'Tab-Separated Values',
+        extensions: ['tsv'],
+      }).catch(err => alert('Save failed: ' + err));
+    } else {
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(new Blob([tsv], { type: 'text/tab-separated-values' }));
+      link.download = filename;
+      link.click();
+    }
   }
 
   function goBack() { window.history.back(); }

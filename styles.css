@@ -287,6 +287,8 @@ select:focus, input[type="text"]:focus {
 }
 
 select {
+  flex: 1;
+  min-width: 0;
   cursor: pointer;
   -webkit-appearance: none;
   appearance: none;
