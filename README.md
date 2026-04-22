@@ -1,19 +1,49 @@
 # ose-interlinear-viewer
 OneStory Editor Interlinear Viewer
 
-Imports stories from OneStory Editor data file and displays or exports them as Interlinear Texts as XLingPaper documents, HTML web pages, or (coming soon) Word/OpenOffice XML documents.
+Imports stories from a OneStory Editor project file and displays or exports them as Interlinear Texts in multiple formats. (Word/OpenOffice XML export is planned but not yet implemented.)
 
+## How to use
 
-Here's how to use this app:
+**Option A — Desktop App (Windows or Mac)**
 
-1. Download the portable version (/dist/ose-interlinear-exporter<version>.exe) or use the MSI installer (link [here](https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest))
+1. Download the portable `.exe` or use the MSI installer for Windows (latest release [here](https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest)), or download the Mac build if available.
+2. Launch the app.
 
-2. Double-click the portable version you downloaded (ose-interlinear-exporter<version>) or use the start menu or desktop shortcut to launch the program you just installed (if you used the installer).
+**Option B — Web App (in-browser)**
 
-3. Click "XLingPaper" or "Web Page" depending on what format you want to use. If you use "Web Page", there are fewer things you can do with it, but you can view the interlinearized back translation right away without needing to install and learn XLingPaper.
+Open `index.html` directly in Google Chrome, Microsoft Edge, or Safari. No installation required. The web version may include more recent (but potentially experimental) changes than the packaged desktop release.
 
-4. Click "Choose..." and find your OneStory Editor database. It is usually located in the Documents (or My Documents) folder in a folder called "OneStory Editor Projects" or "My OneStory Editor Projects". Within that you should find a file named "<projectname>.onestory" (where <projectname> is the name of your OneStory Project on languageForge/LanguageDepot).
+---
 
-5. When you click "open", a list of stories to choose from should appear. You can filter for biblical, non-biblical, or all, and they'll appear in the dropdown list for you to choose from. Choose the one you want and click "Generate...". If you chose "XLingPaper" then it'll prompt you to save an XML file that you can open in XLingPaper. If you chose "Web Page", then a new window will open showing the story in a much more readable interlinear view.
+3. Choose your export format:
+   - **XLingPaper** — downloads an `.xml` file you can open in [XLingPaper](https://software.sil.org/xlingpaper/). More powerful for formal linguistic presentation, but requires XLingPaper to be installed.
+   - **Web Page** — opens the interlinear story directly in a new browser tab. No extra software needed; great for quick review.
+   - **Tab-Separated (TSV)** — downloads a `.tsv` file you can open in Excel, Google Sheets, or any spreadsheet app. Uses FLEx-style layout: each verse is three rows (vernacular words, glosses, free translation) with one word per column.
 
-Note: The app now lets you display the free translation either in block paragraph form at the end (like Paratext), inline with the word-for-word back translation (like FLEx), or both. The paragraph view at the end is great for paying attention to the overall discourse flow of a story and looking for big-picture plot-structure and information-flow issues like we talked about in the Language Team Training workshop.
+4. Click **Choose...** (or the file input) and navigate to your OneStory Editor database. It is typically at:
+   `Documents/OneStory Editor Projects/<projectname>.onestory`
+   (or `My Documents/My OneStory Editor Projects/` on some systems).
+
+5. After opening the file, a list of stories appears. Use the **Biblical / Non-Biblical / All** filter, then pick a story from the dropdown and click **Generate**.
+
+### Back-Translation Style options (XLingPaper and Web Page only)
+
+| Style | Description |
+|---|---|
+| **FLEx Style** | Free translation shown inline below each verse's word-for-word gloss (like FieldWorks Language Explorer) |
+| **Paratext Style** | Free translation shown as a block paragraph section at the end (like Paratext) |
+| **Both** | Includes both the interlinear section and the Paratext-style paragraph section |
+
+The TSV export always uses FLEx style. The paragraph view at the end (Paratext style) is especially useful for attending to overall discourse flow — plot structure, information flow, and big-picture story issues.
+
+## Development
+
+Built with [Electron](https://www.electronjs.org/). To run locally:
+
+```bash
+npm install
+npm start
+```
+
+Requires Node.js. The XLingPaper and Web Page exports use client-side XSLT (via the browser's built-in `XSLTProcessor`) to transform the `.onestory` XML. The TSV export uses plain JavaScript. No server needed for any format.
