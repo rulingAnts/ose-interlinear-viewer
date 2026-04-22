@@ -444,37 +444,33 @@
       const xsltDoc = new DOMParser().parseFromString(xsltContent, 'application/xml');
       xsltProcessor.importStylesheet(xsltDoc);
 
-      let resultString;
-      if (/Firefox\//.test(navigator.userAgent)) {
-        // Firefox bug: transformToDocument wraps the result in <transformiix:result>.
-        // transformToFragment returns the actual result tree without the wrapper.
-        const ownerDoc = document.implementation.createDocument(null, null, null);
-        const resultFrag = xsltProcessor.transformToFragment(selectedStoryNode, ownerDoc);
-        resultString = new XMLSerializer().serializeToString(resultFrag);
-      } else {
-        resultString = new XMLSerializer().serializeToString(
+      const resultString = (() => {
+        let s = new XMLSerializer().serializeToString(
           xsltProcessor.transformToDocument(selectedStoryNode)
         );
-      }
-      
-      // Insert the resultHTMLScript before </head>
-      var headIndex = resultString.indexOf('</head>');
-      if (headIndex !== -1) {
-        resultString = resultString.slice(0, headIndex) + '\n' + resultHTMLScript + '\n' + resultString.slice(headIndex);
-      } else {
-        console.error('Error: </head> not found in resultString');
-      }
-      
+        // Inject the save/toggle script before </head>
+        const headIndex = s.indexOf('</head>');
+        return headIndex !== -1
+          ? s.slice(0, headIndex) + '\n' + resultHTMLScript + '\n' + s.slice(headIndex)
+          : s;
+      })();
+
       output.textContent = resultString;
 
-      // Open via a blob URL so Firefox and Chrome both render it correctly.
-      // document.write() into a blank window doesn't work reliably in Firefox.
-      const blob = new Blob([resultString], { type: 'text/html; charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const newWindow = window.open(url, '_blank', 'width=1000,height=800,scrollbars=yes,menubar=yes');
-      if (!newWindow) {
-        alert('Popup was blocked. Please allow popups for this site and try again.');
-        URL.revokeObjectURL(url);
+      if (window.__TAURI__) {
+        // Tauri: write to a temp file and open in the system default browser.
+        // The output is pre-rendered HTML — no XSLT needed by the browser.
+        window.__TAURI__.core.invoke('export_html', { html: resultString })
+          .catch(err => alert('Could not open in browser: ' + err));
+      } else {
+        // Web: open via a blob URL in a new tab.
+        const blob = new Blob([resultString], { type: 'text/html; charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const newWindow = window.open(url, '_blank', 'width=1000,height=800,scrollbars=yes,menubar=yes');
+        if (!newWindow) {
+          alert('Popup was blocked. Please allow popups for this site and try again.');
+          URL.revokeObjectURL(url);
+        }
       }
 
     } else {
@@ -577,6 +573,9 @@ function goBack() {
   <span hidden><pre id="output"></pre></span>
 
   <script>
+  function isFirefox() {
+    return /Firefox\//.test(navigator.userAgent);
+  }
   function isSupportedBrowser() {
     if (navigator.userAgentData && navigator.userAgentData.brands) {
       return navigator.userAgentData.brands.some(b =>
@@ -584,14 +583,19 @@ function goBack() {
       );
     }
     const ua = navigator.userAgent.toLowerCase();
-    return ua.includes("firefox") || ua.includes("edg") || ua.includes("chrome")
+    return ua.includes("edg") || ua.includes("chrome")
         || ua.includes("safari") || ua.includes("chromium") || ua.includes("applewebkit");
   }
   const _w = document.getElementById('browserWarning');
-  if (!isSupportedBrowser()) {
-    _w.innerHTML = 'Unsupported browser. Please use Chrome, Edge, Firefox, or Safari — or <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">download the Windows app</a>.';
-    alert("This app requires Chrome, Edge, Firefox, or Safari. You will be redirected to the download page.");
-    window.location.href = "https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest";
+  if (!window.__TAURI__) {
+    if (isFirefox()) {
+      _w.innerHTML = 'This app does not work correctly in Firefox. Please use Chrome or Edge — or <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">download the Windows desktop app</a>.';
+      document.querySelector('.card').style.display = 'none';
+    } else if (!isSupportedBrowser()) {
+      _w.innerHTML = 'Unsupported browser. Please use Chrome or Edge — or <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">download the Windows app</a>.';
+      alert("This app requires Chrome or Edge. You will be redirected to the download page.");
+      window.location.href = "https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest";
+    }
   }
   </script>
 </body>

@@ -1,9 +1,21 @@
+# Dependencies
+node_modules/
+
+# Rust / Tauri build artifacts
+src-tauri/target/
+
+# Generated mobile icons (desktop-only project — only desktop icons are committed)
+src-tauri/icons/android/
+src-tauri/icons/ios/
+
+# macOS
 .DS_Store
-node_modules
-out
-dist
-package.json.txt
-package-lock.jso
+
+# Editor
+.vscode/
 settings.json
-.vscode
-sample/
+
+# Misc
+out/
+dist/
+package.json.txt

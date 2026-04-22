@@ -299,20 +299,8 @@
       const xsltDoc = new DOMParser().parseFromString(xsltContent, 'application/xml');
       xsltProcessor.importStylesheet(xsltDoc);
 
-      let resultString;
-      if (/Firefox\//.test(navigator.userAgent)) {
-        // Firefox bug: transformToDocument wraps the result in <transformiix:result> instead of
-        // the actual root element. transformToFragment doesn't have this issue.
-        // We then manually prepend the XML declaration and DOCTYPE that xsl:output would normally inject.
-        const ownerDoc = document.implementation.createDocument(null, null, null);
-        const resultFrag = xsltProcessor.transformToFragment(selectedStoryNode, ownerDoc);
-        resultString = '<?xml version="1.0" encoding="UTF-8"?>\n' +
-                       '<!DOCTYPE lingPaper PUBLIC "-//XMLmind//DTD XLingPap//EN" "/Transforms/XLingPap.dtd">\n' +
-                       new XMLSerializer().serializeToString(resultFrag);
-      } else {
-        const resultDoc = xsltProcessor.transformToDocument(selectedStoryNode);
-        resultString = new XMLSerializer().serializeToString(resultDoc);
-      }
+      const resultDoc = xsltProcessor.transformToDocument(selectedStoryNode);
+      const resultString = new XMLSerializer().serializeToString(resultDoc);
       output.textContent = resultString;
       
       // Output a file for the user to download (commented out for now).
@@ -437,6 +425,9 @@ function goBack() {
   <span hidden><pre id="output"></pre></span>
 
   <script>
+  function isFirefox() {
+    return /Firefox\//.test(navigator.userAgent);
+  }
   function isSupportedBrowser() {
     if (navigator.userAgentData && navigator.userAgentData.brands) {
       return navigator.userAgentData.brands.some(b =>
@@ -444,14 +435,19 @@ function goBack() {
       );
     }
     const ua = navigator.userAgent.toLowerCase();
-    return ua.includes("firefox") || ua.includes("edg") || ua.includes("chrome")
+    return ua.includes("edg") || ua.includes("chrome")
         || ua.includes("safari") || ua.includes("chromium") || ua.includes("applewebkit");
   }
   const _w = document.getElementById('browserWarning');
-  if (!isSupportedBrowser()) {
-    _w.innerHTML = 'Unsupported browser. Please use Chrome, Edge, Firefox, or Safari — or <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">download the Windows app</a>.';
-    alert("This app requires Chrome, Edge, Firefox, or Safari. You will be redirected to the download page.");
-    window.location.href = "https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest";
+  if (!window.__TAURI__) {
+    if (isFirefox()) {
+      _w.innerHTML = 'This app does not work correctly in Firefox. Please use Chrome or Edge — or <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">download the Windows desktop app</a>.';
+      document.querySelector('.card').style.display = 'none';
+    } else if (!isSupportedBrowser()) {
+      _w.innerHTML = 'Unsupported browser. Please use Chrome or Edge — or <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">download the Windows app</a>.';
+      alert("This app requires Chrome or Edge. You will be redirected to the download page.");
+      window.location.href = "https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest";
+    }
   }
   </script>
 </body>
