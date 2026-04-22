@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>One-Story Editor to TSV Exporter</title>
+  <script>
+  // ============================================================
+  // OSE INTERLINEAR → TSV TRANSFORMATION
+  // ============================================================
+  // INPUT FILE FORMAT
+  // -----------------
+  // The input is a .onestory file, which is an XML file produced
+  // by OneStory Editor (a Bible story translation tool by SIL).
+  // A single .onestory file contains multiple <story> elements.
+  //
+  // Relevant XML structure of each story:
+  //
+  //   <story name="Story Name">
+  //     <CraftingInfo NonBiblicalStory="false">
+  //       <StoryPurpose>...</StoryPurpose>
+  //       <ResourcesUsed>...</ResourcesUsed>
+  //       <MiscellaneousStoryInfo>...</MiscellaneousStoryInfo>
+  //     </CraftingInfo>
+  //     <Verses>
+  //       <Verse guid="...">
+  //         <StoryLine lang="Vernacular">word1 word2 word3</StoryLine>
+  //         <StoryLine lang="NationalBt">gloss1 gloss2 gloss3</StoryLine>
+  //         <StoryLine lang="InternationalBt">Free translation sentence.</StoryLine>
+  //         <Anchors>
+  //           <Anchor>Optional consultant note text</Anchor>
+  //         </Anchors>
+  //       </Verse>
+  //       ...
+  //     </Verses>
+  //   </story>
+  //
+  // Each Verse has three parallel text lines:
+  //   - Vernacular:      the source/indigenous language text
+  //   - NationalBt:      word-for-word gloss in a national language
+  //                      (words are space-separated and positionally
+  //                      aligned with the Vernacular words)
+  //   - InternationalBt: free translation (usually English), a single
+  //                      prose sentence — not word-aligned
+  //
+  // NOTE: The Vernacular text may contain [B&B...] annotation tags
+  // (e.g. "[B&B Gen 1:1]") inserted by the translator to mark Bible
+  // references. These must be stripped before processing, as they are
+  // not actual words in the source text.
+  //
+  // OUTPUT FILE FORMAT
+  // ------------------
+  // A tab-separated values (.tsv) file structured as follows:
+  //
+  // COLUMN LAYOUT (0-indexed):
+  //   Col 0: always blank (structural spacer)
+  //   Col 1: line number (only on the "Wrd" row of each verse group)
+  //   Col 2: row label — one of: "Story Title", "Non-Biblical Story",
+  //          "Story Purpose", "Resources Used", "Misc. Info",
+  //          "(words / glosses →)" [header hint], "Wrd", "Gls", "Free"
+  //   Col 3+: content — one word/gloss per column for Wrd and Gls rows;
+  //           full prose string in col 3 only for Free and metadata rows
+  //
+  // ROW STRUCTURE:
+  //   First: metadata rows (story name, biblical/non-biblical flag, etc.)
+  //   Then:  a blank row
+  //   Then:  a column-header hint row
+  //   Then:  a blank row
+  //   Then:  for each Verse, a block of exactly 4 rows:
+  //     Row 1 — "Wrd":  [blank] [verseNumber] [Wrd] [word1] [word2] ...
+  //     Row 2 — "Gls":  [blank] [blank]       [Gls] [gls1]  [gls2]  ...
+  //     Row 3 — "Free": [blank] [blank]        [Free] [full free translation]
+  //     Row 4 — blank separator row
+  //
+  // The Wrd and Gls rows are positionally aligned: the gloss in col N
+  // corresponds to the vernacular word in col N. Word count may differ
+  // between Vernacular and NationalBt if the translator used a different
+  // number of gloss words; no padding is applied — each row simply has
+  // as many columns as it has tokens.
+  //
+  // This is a FLEx-style interlinear layout. Paratext-style (block
+  // paragraph back-translation) is not included in TSV export.
+  // ============================================================
+
+  let storyNodes;
+
+  // Reads the selected .onestory file, parses it as XML, and populates
+  // the story dropdown with the name attribute of each <story> element.
+  function populateStoryList() {
+    const input = document.getElementById('fileInput');
+    const storySelect = document.getElementById('storySelect');
+    storySelect.innerHTML = '<option>Select a story</option>';
+
+    const reader = new FileReader();
+    reader.onload = function (event) {
+      const xmlContent = event.target.result;
+      // Parse the .onestory XML into a DOM so we can query it.
+      const xmlDoc = new DOMParser().parseFromString(xmlContent, 'application/xml');
+      // Each top-level <story> element is one story in the project.
+      storyNodes = xmlDoc.querySelectorAll('story');
+
+      storyNodes.forEach((storyNode, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        option.text = storyNode.getAttribute('name');
+        storySelect.add(option);
+      });
+    };
+
+    reader.readAsText(input.files[0]);
+    document.getElementById('loadedOptions').removeAttribute('hidden');
+  }
+
+  // Filters the story dropdown by biblical/non-biblical status.
+  // The CraftingInfo element has a NonBiblicalStory attribute
+  // with value "true" or "false" (as a string, not a boolean).
+  function filterStories() {
+    const selectedGroup = document.getElementById('nonBiblicalGroupSelect').value;
+    const storySelect = document.getElementById('storySelect');
+    storySelect.innerHTML = '<option>Select a story</option>';
+
+    storyNodes.forEach((storyNode, index) => {
+      const craftingInfoNode = storyNode.querySelector('CraftingInfo');
+      const nonBiblical = craftingInfoNode ? craftingInfoNode.getAttribute('NonBiblicalStory') : null;
+      if (nonBiblical === selectedGroup || selectedGroup === 'All') {
+        const option = document.createElement('option');
+        option.value = index;
+        option.text = storyNode.getAttribute('name');
+        storySelect.add(option);
+      }
+    });
+  }
+
+  // Strips [B&B...] Bible reference annotation tags from vernacular text.
+  // These tags appear inline in Vernacular StoryLine text, e.g. "[B&B Gen 1:1]".
+  // They are translator annotations, not actual words, so they must be removed
+  // before splitting the text into words. After removal, collapse any extra
+  // whitespace left behind.
+  function removeBnB(text) {
+    return (text || '').replace(/\[B&B[^\]]*\]/g, '').replace(/\s+/g, ' ').trim();
+  }
+
+  // Sanitizes a string for safe inclusion in a TSV cell.
+  // Tabs would break the column structure; newlines would create extra rows.
+  // Both are replaced with a single space. Also trims leading/trailing whitespace.
+  function escapeVal(val) {
+    return (val || '').replace(/\t/g, ' ').replace(/\r?\n/g, ' ').trim();
+  }
+
+  // Core transformation: reads the selected story from the parsed XML,
+  // builds the row/column data structure, then serializes it as TSV and
+  // triggers a browser download.
+  function generateTSV() {
+    const storySelect = document.getElementById('storySelect');
+    const selectedIndex = storySelect.value;
+
+    if (selectedIndex === 'Select a story') {
+      alert('Please select a story before generating.');
+      return;
+    }
+
+    // --- Extract story metadata ---
+    // The <story> element's name attribute is the story title.
+    const storyNode = storyNodes[selectedIndex];
+    const storyName = storyNode.getAttribute('name') || '';
+
+    // CraftingInfo holds optional metadata about the story's origin.
+    const craftingInfo = storyNode.querySelector('CraftingInfo');
+    // NonBiblicalStory is a string attribute: "true" or "false".
+    const nonBiblical   = craftingInfo ? craftingInfo.getAttribute('NonBiblicalStory') : '';
+    const storyPurpose  = craftingInfo ? escapeVal(craftingInfo.querySelector('StoryPurpose')?.textContent)          : '';
+    const resourcesUsed = craftingInfo ? escapeVal(craftingInfo.querySelector('ResourcesUsed')?.textContent)         : '';
+    const miscInfo      = craftingInfo ? escapeVal(craftingInfo.querySelector('MiscellaneousStoryInfo')?.textContent) : '';
+
+    // --- Build the rows array ---
+    // Each element of `rows` is an array of cell values for one TSV row.
+    // Rows are joined by tabs; empty arrays produce blank lines.
+    const T = '\t';
+    const rows = [];
+
+    // Metadata block: col 0 blank, col 1 blank, col 2 = label, col 3 = value.
+    rows.push(['', '', 'Story Title',        escapeVal(storyName)]);
+    rows.push(['', '', 'Non-Biblical Story', nonBiblical === 'true' ? 'Yes' : 'No']);
+    // Only include optional metadata fields if they have content.
+    if (storyPurpose)   rows.push(['', '', 'Story Purpose',  storyPurpose]);
+    if (resourcesUsed)  rows.push(['', '', 'Resources Used', resourcesUsed]);
+    if (miscInfo)       rows.push(['', '', 'Misc. Info',      miscInfo]);
+    rows.push([]); // blank row separating metadata from data
+
+    // Column header hint row so spreadsheet users know what the columns mean.
+    rows.push(['', '#', 'Label', '(words / glosses →)']);
+    rows.push([]); // blank row before verse data begins
+
+    // --- Process each verse ---
+    // Verses are <Verse> children of <Verses>. They appear in story order.
+    const verses = storyNode.querySelectorAll('Verse');
+    verses.forEach((verse, index) => {
+
+      // Each verse has three StoryLine children, identified by their lang attribute:
+      //   lang="Vernacular"      — source language text (words, space-separated)
+      //   lang="NationalBt"      — national-language word-for-word gloss (space-separated,
+      //                            positionally aligned with Vernacular words)
+      //   lang="InternationalBt" — English (or international language) free translation
+      //                            (a single prose sentence, not word-aligned)
+      const vernLine  = verse.querySelector("StoryLine[lang='Vernacular']");
+      const glossLine = verse.querySelector("StoryLine[lang='NationalBt']");
+      const freeLine  = verse.querySelector("StoryLine[lang='InternationalBt']");
+
+      // Get the text content of each line, applying appropriate cleanup.
+      // Vernacular: strip [B&B...] tags before splitting into words.
+      // NationalBt: no annotation tags expected, just sanitize for TSV.
+      // InternationalBt: prose sentence, keep as a single value.
+      const vernText  = vernLine  ? removeBnB(vernLine.textContent)  : '';
+      const glossText = glossLine ? escapeVal(glossLine.textContent) : '';
+      const freeText  = freeLine  ? escapeVal(freeLine.textContent)  : '';
+
+      // Split Vernacular and NationalBt into individual words on whitespace.
+      // The resulting arrays are spread into columns starting at col 3.
+      // Word at index N in vernWords corresponds to gloss at index N in glossWords.
+      const vernWords  = vernText  ? vernText.split(/\s+/)  : [];
+      const glossWords = glossText ? glossText.split(/\s+/) : [];
+
+      // Wrd row: line number appears only here (col 1), label "Wrd" in col 2,
+      // then one vernacular word per column from col 3 onward.
+      rows.push(['', index + 1, 'Wrd',  ...vernWords]);
+
+      // Gls row: col 1 blank (no repeated line number), label "Gls" in col 2,
+      // then one gloss word per column from col 3 onward.
+      // Column alignment with the Wrd row above is what makes this interlinear.
+      rows.push(['', '',        'Gls',  ...glossWords]);
+
+      // Free row: col 1 blank, label "Free" in col 2, full prose sentence in col 3.
+      // The free translation is not word-aligned, so it occupies only one cell.
+      rows.push(['', '',        'Free', freeText]);
+
+      // Blank row to visually separate this verse group from the next.
+      rows.push([]);
+    });
+
+    // --- Serialize to TSV and trigger download ---
+    // Join each row's cells with tabs, then join rows with newlines.
+    // Empty rows (blank separators) become lines containing only a newline.
+    const tsvContent = rows.map(row => row.join(T)).join('\n');
+
+    // Create a downloadable blob and click a temporary link to save it.
+    // The filename is the story name with unsafe characters already sanitized by escapeVal.
+    const blob = new Blob([tsvContent], { type: 'text/tab-separated-values' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = escapeVal(storyName) + '.tsv';
+    link.click();
+  }
+
+  function goBack() {
+    window.history.back();
+  }
+  </script>
+</head>
+<body>
+  <div id="browserWarning" style="color: red;">
+    Warning: You appear to be using an unsupported browser. Also make sure JavaScript is not disabled. This app likely will not work with your current browser and settings. Please use Microsoft Edge, Google Chrome, or Safari or <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">download the latest Windows version</a> of this app.
+  </div>
+  <center style="margin-top:30px;">
+  <table>
+    <thead>
+      <tr><th colspan="2">OneStory Story Interlinearizer — TSV Export</th></tr>
+      <tr>
+        <td><button onclick="goBack()">Go Back</button></td>
+        <td><input type="file" id="fileInput" /><button onclick="populateStoryList()">Open</button></td>
+      </tr>
+    </thead>
+    <tbody hidden id="loadedOptions">
+      <tr>
+        <td style="text-align:right;"><label for="nonBiblicalGroupSelect">Select Story:</label></td>
+        <td>
+          <select id="nonBiblicalGroupSelect" onchange="filterStories()">
+            <option value="All">All</option>
+            <option value="true">Non-Biblical Stories</option>
+            <option value="false">Biblical Stories</option>
+          </select>&nbsp;
+          <select id="storySelect">
+            <option>Select a story</option>
+          </select>
+        </td>
+      </tr>
+      <tr>
+        <td style="text-align:right;">Back-Translation Style:</td>
+        <td><em>FLEx style only</em> &mdash; word-aligned gloss with free translation per verse</td>
+      </tr>
+      <tr>
+        <td></td>
+        <td><button onclick="generateTSV()">Download TSV</button></td>
+      </tr>
+    </tbody>
+  </table>
+  </center>
+
+  <script>
+  function isSupportedBrowser() {
+    if (navigator.userAgentData && navigator.userAgentData.brands) {
+      return navigator.userAgentData.brands.some(b =>
+        ["Google Chrome", "Microsoft Edge", "Apple", "Chromium"].includes(b.brand)
+      );
+    }
+    const ua = navigator.userAgent.toLowerCase();
+    return ua.includes("edg") || ua.includes("chrome") || ua.includes("safari")
+        || ua.includes("chromium") || ua.includes("applewebkit");
+  }
+
+  if (isSupportedBrowser()) {
+    document.getElementById('browserWarning').innerHTML = '';
+  } else {
+    alert("This web app only supports Google Chrome, Safari, or Microsoft Edge. You will be redirected to the download page.");
+    window.location.href = "https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest";
+  }
+  </script>
+</body>
+</html>
