@@ -362,95 +362,86 @@ function goBack() {
 }
 
 </script>
+  <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <div id="browserWarning" style="color: red;">
-    Warning: You appear to be using an unsupported browser. Also make sure JavaScript is not disabled. This app likely will not work with your current browser and settings. Please use Microsoft Edge, Google Chrome, or Safari or <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">download the latest Windows version</a> of this app.
+  <div class="container">
+    <div id="browserWarning" class="browser-warning"></div>
+
+    <div class="card">
+      <div class="page-header">
+        <button class="btn btn-ghost" onclick="goBack()">&#8592; Back</button>
+        <div class="page-header-titles">
+          <h1>OneStory Interlinearizer</h1>
+          <p class="page-subtitle">Export as XLingPaper XML</p>
+        </div>
+      </div>
+
+      <div class="file-row">
+        <input type="file" id="fileInput" />
+        <button class="btn btn-primary" onclick="populateStoryList()">Open</button>
+      </div>
+
+      <div hidden id="loadedOptions">
+        <div class="form-stack">
+          <div class="form-row">
+            <label class="form-label" for="nonBiblicalGroupSelect">Filter stories</label>
+            <select id="nonBiblicalGroupSelect" onchange="filterStories()">
+              <option value="All">All stories</option>
+              <option value="true">Non-Biblical only</option>
+              <option value="false">Biblical only</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label" for="storySelect">Story</label>
+            <select id="storySelect" style="flex:1;" onchange="document.getElementById('xmlFileName').value=this.options[storySelect.selectedIndex].innerText">
+              <option>Select a story</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label" for="backTranslationStyleSelect">Back-translation style</label>
+            <select id="backTranslationStyleSelect" onchange="updateBackTranslationStyle()">
+              <option value="flexStyle">FLEx Style</option>
+              <option value="paratextStyle">Paratext Style</option>
+              <option value="bothStyles" selected>Both</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label" for="xmlFileName">Save as</label>
+            <input type="text" id="xmlFileName" value="NewXLingPaperDocument" />
+            <span class="filename-suffix">.xml</span>
+          </div>
+        </div>
+
+        <div class="generate-row">
+          <button class="btn btn-accent" onclick="transformStory()">Generate XLingPaper Document ›</button>
+        </div>
+      </div>
+    </div>
   </div>
-  <center style="margin-top:30px;">
-<table>
-  <thead>
-    <tr><th colspan="2">OneStory Story Interlinearizer</th></tr>
-      <tr><td><button onclick="goBack()">Go Back</button></td>
-        <td><input type="file" id="fileInput" /><button onclick="populateStoryList()">Open</button></td></tr>
-  </thead>
-  <tbody hidden id="loadedOptions">
-    <td style="text-align: right;"><label for="nonBiblicalGroupSelect">Select Story:</label></td>
-        <td><select id="nonBiblicalGroupSelect" onchange="filterStories()">
-  <option value="All">All</option>
-  <option value="true">Non-Biblical Stories</option>
-  <option value="false">Biblical Stories</option>
-</select>&nbsp;
-  <select id="storySelect" onchange="document.getElementById('xmlFileName').value=this.options[storySelect.selectedIndex].innerText">
-    <option>Select a story</option>
-  </select></td></tr>
-<tr><td style="text-align: right;">
-  <label for="backTranslationStyleSelect">Back-Translation Style:</label></td>
-  <td><select id="backTranslationStyleSelect" onchange="updateBackTranslationStyle()">
-    <option value="flexStyle">FLEx Style</option>
-    <option value="paratextStyle">Paratext Style</option>
-    <option value="bothStyles" selected>Both</option>
-  </select></td></tr>
-<tr><td style="text-align: right;">
-<label for="xmlFileName">Save as...</label>
-</td><td><input id="xmlFileName" value="NewXLingPaperDocument" style="width:40ch;" onload="this.value=document.getElementById('storySelect').value;" />.xml</td></tr>
- <tr><td></td><td><button onclick="transformStory()">Generate XLingPaper Document!</button></td>
-</tr>
-  </tbody>
-  </table></center>
 
-<span hidden><pre id="output"></pre></span>
-<script>
-// Check if the browser is Chromium-based
-function isChromiumBased() {
-      if (navigator.userAgentData && navigator.userAgentData.brands) {
-        // Check if the browser is Chrome, Edge, or Safari
-        return (
-          navigator.userAgentData.brands.some((brand) =>
-            ["Google Chrome", "Microsoft Edge", "Apple", "Chromium"].includes(brand.brand)
-          ) ||
-          navigator.userAgentData.mobile &&
-            navigator.userAgentData.mobile.brands.some((brand) =>
-              ["Google Chrome", "Microsoft Edge", "Safari", "Chromium"].includes(brand.brand)
-            )
-        );
-      } else {
-        // Fallback to checking userAgent
-        var userAgent = navigator.userAgent.toLowerCase();
-        return userAgent.includes("edg") || userAgent.includes("chrome") || userAgent.includes("safari")|| userAgent.includes("electron");
-      }
+  <span hidden><pre id="output"></pre></span>
+
+  <script>
+  function isSupportedBrowser() {
+    if (navigator.userAgentData && navigator.userAgentData.brands) {
+      return navigator.userAgentData.brands.some(b =>
+        ["Google Chrome", "Microsoft Edge", "Apple", "Chromium"].includes(b.brand)
+      );
     }
-
-    // Remove warning content if Chromium-based
-    function removeWarningIfChromiumBased() {
-      if (isChromiumBased()) {
-        var warningDiv = document.getElementById("browserWarning");
-        if (warningDiv) {
-          warningDiv.innerHTML = ""; // Remove the content of the warning div
-        }
-      }
-    }
-
-    // Call the function when the page is loaded
-    removeWarningIfChromiumBased();
-
-function navigateTo(path) {
-  window.location.href = path;
-}
-
-// Redirect and show alert if not Chromium-based
-function checkBrowser() {
-  if (!isChromiumBased()) {
-      // Show an alert message
-      alert("This web app only supports Chromium-based browsers. Please use Microsoft Edge, Google Chrome, or Safari, make sure JavaScript is not disabled, or download the Windows application version of this product. You will be redirected now to the download page.");
-
-      // Redirect to a specific page
-      window.location.href = "https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest";
+    const ua = navigator.userAgent.toLowerCase();
+    return ua.includes("edg") || ua.includes("chrome") || ua.includes("safari")
+        || ua.includes("chromium") || ua.includes("applewebkit");
   }
-}
-
-// Call the function when the page is loaded
-checkBrowser();
-</script>
+  const _w = document.getElementById('browserWarning');
+  if (!isSupportedBrowser()) {
+    _w.innerHTML = 'Unsupported browser. Please use Chrome, Edge, or Safari — or <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">download the Windows app</a>.';
+    alert("This app requires Chrome, Edge, or Safari. You will be redirected to the download page.");
+    window.location.href = "https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest";
+  }
+  </script>
 </body>
 </html>

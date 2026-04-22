@@ -3,17 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>One-Story Editor Interlinearizer</title>
+  <title>OneStory Interlinearizer</title>
+  <link rel="stylesheet" href="./styles.css">
   <script>
     function navigateTo(newURL) {
-      window.location.href=newURL;
+      window.location.href = newURL;
     }
   </script>
   <script>
-    // Register the service worker so the app works offline and stays
-    // up-to-date. registration.update() is called on every load to force
-    // the browser to check sw.js against the server — if CACHE_VERSION
-    // changed (new deploy), the new SW installs and activates immediately.
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
@@ -24,103 +21,87 @@
   </script>
 </head>
 <body>
-  <div id="browserWarning" style="color: red;">
-    Warning: You appear to be using an unsupported browser. Also make sure JavaScript is not disabled. This app likely will not work with your current browser and settings. Please use Microsoft Edge, Google Chrome, or Safari or <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">download the latest Windows version</a> of this app.
+  <div class="container">
+    <div id="browserWarning" class="browser-warning"></div>
+
+    <div class="card">
+      <div class="app-logo">SIL &mdash; OneStory Editor</div>
+      <h1 class="app-title">Story Interlinearizer</h1>
+      <p class="app-description">
+        Open a <code>.onestory</code> project file and export any story
+        as an interlinear back-translation document.
+      </p>
+
+      <p style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:10px;">
+        Choose export format
+      </p>
+
+      <div class="format-menu">
+        <button class="btn-format" onclick="navigateTo('./xlingpaper.html')">
+          <span class="btn-format-icon">📄</span>
+          <span class="btn-format-text">
+            <span class="btn-format-name">XLingPaper</span>
+            <span class="btn-format-desc">Exports an XML file for use in XLingPaper — ideal for formal linguistic publishing</span>
+          </span>
+          <span class="btn-format-arrow">›</span>
+        </button>
+
+        <button class="btn-format" onclick="navigateTo('./html.html')">
+          <span class="btn-format-icon">🌐</span>
+          <span class="btn-format-text">
+            <span class="btn-format-name">Web Page</span>
+            <span class="btn-format-desc">Opens the interlinear story in a new browser tab — no extra software needed</span>
+          </span>
+          <span class="btn-format-arrow">›</span>
+        </button>
+
+        <button class="btn-format" onclick="navigateTo('./tsv.html')">
+          <span class="btn-format-icon">📊</span>
+          <span class="btn-format-text">
+            <span class="btn-format-name">Spreadsheet-Compatible Text</span>
+            <span class="btn-format-desc">Tab-separated (.tsv) — opens in Excel, Google Sheets, or any text editor</span>
+          </span>
+          <span class="btn-format-arrow">›</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="app-message" id="message"></div>
   </div>
-  <center style="margin-top:30px;">
-<table>
-  <thead>
-    <tr><th><h1>OneStory Story Interlinearizer</h1></th></tr>
-    <tr><th>Select Export Format...</th></tr>
-  </thead>
-  <tbody>
-    <tr><td><button onclick="navigateTo('./xlingpaper.html');">XLingPaper</button></td></tr>
-    <tr><td><button onclick="navigateTo('./html.html');">Web Page</button></td></tr>
-    <tr><td><button onclick="navigateTo('./tsv.html');">Spreadsheet-Compatible Text: Tab-Separated (TSV)</button></td></tr>
-    <tr hidden><td><button onclick="navigateTo('./word-writer.html');">OpenOffice Writer/MS Word</button></td></tr>
-  </tbody>
-  </table></center>
 
-<span hidden><pre id="output"></pre></span>
-<div id="message" style="display:block;margin-left:25%;margin-right:25%;margin-top:30pt;"></div>
-<script>
-  // Check if the browser is supported (Chromium-based, Electron, or WebKit)
-  function isSupportedBrowser() {
-        if (navigator.userAgentData && navigator.userAgentData.brands) {
-          // Check if the browser is Chrome, Edge, or Safari
-          var isChromiumBased =
-            navigator.userAgentData.brands.some((brand) =>
-              ["Google Chrome", "Microsoft Edge", "Apple", "Chromium"].includes(brand.brand)
-            ) ||
-            (navigator.userAgentData.mobile &&
-              navigator.userAgentData.mobile.brands.some((brand) =>
-                ["Google Chrome", "Microsoft Edge", "Safari", "Chromium"].includes(brand.brand)
-              ));
-  
-          if (!isChromiumBased) {
-            console.log("UserAgentData:", JSON.stringify(navigator.userAgentData));
-          }
-  
-          return isChromiumBased;
-        } else {
-          // Fallback to checking userAgent
-          var userAgent = navigator.userAgent.toLowerCase();
-          var isSupported =
-            userAgent.includes("edg") ||
-            userAgent.includes("chrome") ||
-            userAgent.includes("safari") ||
-            userAgent.includes("chromium") || // Check for Electron
-            userAgent.includes("applewebkit"); // Check for WebKit
-  
-          if (!isSupported) {
-            console.log("UserAgent:", userAgent);
-          }
-  
-          return isSupported;
-        }
-      }
-  
-      // Remove warning content if supported browser
-      function removeWarningIfSupportedBrowser() {
-        if (isSupportedBrowser()) {
-          var warningDiv = document.getElementById("browserWarning");
-          if (warningDiv) {
-            warningDiv.innerHTML = ""; // Remove the content of the warning div
-          } 
-        } else {
-            alert("You appear to be using an unsupported browser. This web app only supports Google Chrome, Safari, or Microsoft Edge. Please use a supported browser, or download the standalone Windows version of this app. You will be redirected to the download page now.")
-            navigateTo("https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest");
-          }
-      }
-  
-      // Call the function when the page is loaded
-      removeWarningIfSupportedBrowser();
-
-      
-  </script>
   <script>
-
-        if (navigator.userAgentData && navigator.userAgentData.brands) {
-          // Check if the browser is Chrome, Edge, or Safari
-          var isChromium =
-            navigator.userAgentData.brands.some((brand) =>
-              ["Chromium"].includes(brand.brand)
-            ) ||
-            (navigator.userAgentData.mobile &&
-              navigator.userAgentData.mobile.brands.some((brand) =>
-                ["Chromium"].includes(brand.brand)
-              ));
-          displayMessage('You are using the OneStory Interlinear Viewer Desktop App. Be sure to <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">check the website</a> for the latest version.');
-         
-        } else {
-          displayMessage('You are using the Web-Based Version of OneStory Interlinear Viewer. It will likely contain more recent changes than the Desktop version, but may also contain some experimental features that may or may not yet work reliably. You can find the stable, Windows Desktop Version <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">here</a>.');
-          console.log("UserAgentData:", JSON.stringify(navigator.userAgentData))
-        }
-
-      function displayMessage(message) {
-        var messageElement = document.getElementById('message');
-        messageElement.innerHTML = message;
+    function isSupportedBrowser() {
+      if (navigator.userAgentData && navigator.userAgentData.brands) {
+        return navigator.userAgentData.brands.some(b =>
+          ["Google Chrome", "Microsoft Edge", "Apple", "Chromium"].includes(b.brand)
+        );
       }
+      const ua = navigator.userAgent.toLowerCase();
+      return ua.includes("edg") || ua.includes("chrome") || ua.includes("safari")
+          || ua.includes("chromium") || ua.includes("applewebkit");
+    }
+
+    function isElectron() {
+      if (navigator.userAgentData && navigator.userAgentData.brands) {
+        return navigator.userAgentData.brands.some(b => b.brand === "Chromium")
+            && !navigator.userAgentData.brands.some(b =>
+                ["Google Chrome", "Microsoft Edge"].includes(b.brand));
+      }
+      return navigator.userAgent.toLowerCase().includes("electron");
+    }
+
+    const warning = document.getElementById('browserWarning');
+    const message = document.getElementById('message');
+
+    if (!isSupportedBrowser()) {
+      warning.innerHTML = 'Unsupported browser detected. Please use Chrome, Edge, or Safari — or <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">download the Windows app</a>.';
+      alert("This app requires Chrome, Edge, or Safari. You will be redirected to the download page.");
+      window.location.href = "https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest";
+    } else if (isElectron()) {
+      message.innerHTML = 'Running as desktop app. <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">Check for updates</a>.';
+    } else {
+      message.innerHTML = 'Web version &mdash; may include experimental changes. Stable <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">Windows desktop app here</a>.';
+    }
   </script>
 </body>
 </html>
