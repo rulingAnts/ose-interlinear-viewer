@@ -79,15 +79,18 @@
   </div>
 
   <script>
+    function isFirefox() {
+      return /Firefox\//.test(navigator.userAgent);
+    }
+
     function isSupportedBrowser() {
       if (navigator.userAgentData && navigator.userAgentData.brands) {
         return navigator.userAgentData.brands.some(b =>
           ["Google Chrome", "Microsoft Edge", "Apple", "Chromium"].includes(b.brand)
         );
       }
-      // Firefox lacks userAgentData entirely — detect it via UA string.
       const ua = navigator.userAgent.toLowerCase();
-      return ua.includes("firefox") || ua.includes("edg") || ua.includes("chrome")
+      return ua.includes("edg") || ua.includes("chrome")
           || ua.includes("safari") || ua.includes("chromium") || ua.includes("applewebkit");
     }
 
@@ -101,15 +104,21 @@
     const warning = document.getElementById('browserWarning');
     const message = document.getElementById('message');
 
-    if (!isSupportedBrowser()) {
-      warning.innerHTML = 'Unsupported browser detected. Please use Chrome, Edge, Firefox, or Safari — or <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">download the Windows app</a>.';
-      alert("This app requires Chrome, Edge, Firefox, or Safari. You will be redirected to the download page.");
+    if (isFirefox()) {
+      warning.innerHTML = 'This app does not work correctly in Firefox. Please use Chrome or Edge — or <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">download the Windows desktop app</a>.';
+      document.querySelector('.card').style.display = 'none';
+    } else if (!isSupportedBrowser()) {
+      warning.innerHTML = 'Unsupported browser detected. Please use Chrome, Edge, or Safari — or <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">download the Windows app</a>.';
+      alert("This app requires Chrome, Edge, or Safari. You will be redirected to the download page.");
       window.location.href = "https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest";
-    } else if (isElectron()) {
+    } else if (isElectron() && location.protocol === 'file:') {
+      // Only show "desktop app" when loaded from file:// — the actual packaged desktop app.
+      // VS Code Live Preview also runs in Electron but serves from localhost, so this excludes it.
       message.innerHTML = 'Running as desktop app. <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">Check for updates</a>.';
     } else {
       message.innerHTML = 'Web version &mdash; may include experimental changes. Stable <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">Windows desktop app here</a>.';
     }
+
   </script>
 </body>
 </html>

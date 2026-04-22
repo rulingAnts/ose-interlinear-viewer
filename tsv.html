@@ -245,6 +245,22 @@
           <button class="btn btn-accent" onclick="generateTSV()">Download TSV ›</button>
         </div>
       </div>
+
+      <div style="margin-top:28px; padding-top:24px; border-top:1px solid var(--border);">
+        <p style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:14px;">
+          Opening in Excel
+        </p>
+        <ol style="color:var(--text-muted);font-size:0.8125rem;line-height:1.7;padding-left:18px;">
+          <li>Download the .tsv file using the button above.</li>
+          <li>Open Excel and choose <strong style="color:var(--text);">File › Open</strong>, then select the downloaded file. If Excel doesn't show .tsv files, change the file type filter to <em>All Files</em>.</li>
+          <li>The Text Import Wizard will open. Choose <strong style="color:var(--text);">Delimited</strong> and click Next.</li>
+          <li>Under Delimiters, check <strong style="color:var(--text);">Tab</strong> (uncheck everything else) and click Finish.</li>
+          <li>Each vernacular word and its gloss will be in its own column, aligned vertically.</li>
+        </ol>
+        <p style="color:var(--text-muted);font-size:0.8125rem;margin-top:10px;line-height:1.6;">
+          In Google Sheets, go to <strong style="color:var(--text);">File › Import</strong>, upload the .tsv file, choose <em>Tab</em> as the separator, and click Import.
+        </p>
+      </div>
     </div>
   </div>
 
