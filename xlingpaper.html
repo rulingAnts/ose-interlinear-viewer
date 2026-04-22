@@ -433,13 +433,13 @@ function goBack() {
       );
     }
     const ua = navigator.userAgent.toLowerCase();
-    return ua.includes("edg") || ua.includes("chrome") || ua.includes("safari")
-        || ua.includes("chromium") || ua.includes("applewebkit");
+    return ua.includes("firefox") || ua.includes("edg") || ua.includes("chrome")
+        || ua.includes("safari") || ua.includes("chromium") || ua.includes("applewebkit");
   }
   const _w = document.getElementById('browserWarning');
   if (!isSupportedBrowser()) {
-    _w.innerHTML = 'Unsupported browser. Please use Chrome, Edge, or Safari — or <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">download the Windows app</a>.';
-    alert("This app requires Chrome, Edge, or Safari. You will be redirected to the download page.");
+    _w.innerHTML = 'Unsupported browser. Please use Chrome, Edge, Firefox, or Safari — or <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">download the Windows app</a>.';
+    alert("This app requires Chrome, Edge, Firefox, or Safari. You will be redirected to the download page.");
     window.location.href = "https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest";
   }
   </script>
