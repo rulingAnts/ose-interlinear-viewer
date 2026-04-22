@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OneStory Interlinearizer — FLExText Export</title>
+  <link rel="stylesheet" href="./styles.css">
+  <style>
+    .ws-warning {
+      background: rgba(251, 191, 36, 0.08);
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      border-radius: 7px;
+      padding: 12px 16px;
+      font-size: 0.8125rem;
+      color: #fcd34d;
+      line-height: 1.55;
+      margin-top: 6px;
+    }
+    .ws-warning strong { color: #fde68a; }
+    .ws-warning a { color: #fcd34d; }
+    .ws-warning a:hover { color: #fde68a; }
+    .ws-path {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      background: rgba(251, 191, 36, 0.12);
+      padding: 2px 6px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    input[type="text"].ws-input {
+      font-family: var(--font-mono);
+      letter-spacing: 0.03em;
+    }
+    input[type="text"].ws-input.invalid {
+      border-color: rgba(248, 113, 113, 0.7);
+      box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.15);
+    }
+  </style>
+  <script>
+  // ============================================================
+  // OSE INTERLINEAR → FLExText TRANSFORMATION
+  // ============================================================
+  // INPUT FILE FORMAT
+  // -----------------
+  // The input is a .onestory file — XML produced by OneStory Editor.
+  // See tsv.html for full input format documentation.
+  //
+  // OUTPUT FILE FORMAT
+  // ------------------
+  // FLExText (.flextext) is an XML format used by SIL FieldWorks
+  // Language Explorer (FLEx) to import interlinear text data.
+  //
+  // DOCUMENT STRUCTURE:
+  //
+  //   <document version="2">
+  //     <interlinear-text>
+  //       <item type="title" lang="[freeWS]">Story Title</item>
+  //       <paragraphs>
+  //         <!-- One <paragraph> per verse -->
+  //         <paragraph>
+  //           <phrases>
+  //             <phrase>
+  //               <!-- Full vernacular sentence -->
+  //               <item type="txt" lang="[vernWS]">word1 word2 ...</item>
+  //               <!-- Free translation (English or other) -->
+  //               <item type="gls" lang="[freeWS]">Translation prose.</item>
+  //               <!-- Word-by-word interlinear -->
+  //               <words>
+  //                 <word>
+  //                   <item type="txt" lang="[vernWS]">word1</item>
+  //                   <item type="gls" lang="[glossWS]">gloss1</item>
+  //                 </word>
+  //                 ...
+  //               </words>
+  //             </phrase>
+  //           </phrases>
+  //         </paragraph>
+  //       </paragraphs>
+  //       <!-- Language registry — must list every lang code used above -->
+  //       <languages>
+  //         <language lang="[vernWS]"  font="Charis SIL" vernacular="true" />
+  //         <language lang="[glossWS]" font="Times New Roman" />
+  //         <language lang="[freeWS]"  font="Times New Roman" />
+  //       </languages>
+  //     </interlinear-text>
+  //   </document>
+  //
+  // WRITING SYSTEM CODES (CRITICAL):
+  //   The lang="" attribute on every element must exactly match the
+  //   Code field shown in FLEx under:
+  //     Tools → Configure Writing Systems → [select WS] → General tab
+  //   A mismatch causes FLEx to silently create a duplicate writing
+  //   system, requiring manual database cleanup.
+  //
+  // DATA MAPPING FROM ONESTORY:
+  //   Vernacular StoryLine  → phrase-level txt + per-word txt items
+  //   NationalBt StoryLine  → per-word gls items (word-for-word gloss)
+  //   InternationalBt StoryLine → phrase-level gls item (free translation)
+  //
+  // WORD ALIGNMENT:
+  //   Vernacular and NationalBt are split on whitespace and paired
+  //   positionally. If word counts differ (translator used a different
+  //   number of gloss tokens), words are paired up to the shorter list
+  //   and unpaired tokens are included as solo words with no partner.
+  //
+  // SOURCE: FLExText format documented at
+  //   https://software.sil.org/fieldworks/
+  //   and demonstrated in https://github.com/rulingAnts/FlexText-Excel-Import/
+  // ============================================================
+
+  let storyNodes;
+
+  function populateStoryList() {
+    const input = document.getElementById('fileInput');
+    const storySelect = document.getElementById('storySelect');
+    storySelect.innerHTML = '<option>Select a story</option>';
+
+    const reader = new FileReader();
+    reader.onload = function (event) {
+      const xmlDoc = new DOMParser().parseFromString(event.target.result, 'application/xml');
+      storyNodes = xmlDoc.querySelectorAll('story');
+      storyNodes.forEach((node, i) => {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.text = node.getAttribute('name');
+        storySelect.add(opt);
+      });
+    };
+    reader.readAsText(input.files[0]);
+    document.getElementById('loadedOptions').removeAttribute('hidden');
+  }
+
+  function filterStories() {
+    const selectedGroup = document.getElementById('nonBiblicalGroupSelect').value;
+    const storySelect = document.getElementById('storySelect');
+    storySelect.innerHTML = '<option>Select a story</option>';
+    storyNodes.forEach((node, i) => {
+      const ci = node.querySelector('CraftingInfo');
+      const nonBiblical = ci ? ci.getAttribute('NonBiblicalStory') : null;
+      if (nonBiblical === selectedGroup || selectedGroup === 'All') {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.text = node.getAttribute('name');
+        storySelect.add(opt);
+      }
+    });
+  }
+
+  // Strips [B&B...] Bible reference annotation tags and collapses whitespace.
+  function removeBnB(text) {
+    return (text || '').replace(/\[B&B[^\]]*\]/g, '').replace(/\s+/g, ' ').trim();
+  }
+
+  // Escapes characters that are special in XML text content and attributes.
+  // Must be applied to every user-supplied value inserted into the XML output.
+  function escXml(str) {
+    return (str || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // Validates a writing system code: non-empty, no spaces, reasonable length.
+  // Returns true if valid. FLEx WS codes are BCP 47 tags (e.g. "en", "id",
+  // "bzd", "es-419") but we only enforce basic sanity here — FLEx itself will
+  // reject truly malformed codes at import time.
+  function isValidWsCode(code) {
+    return typeof code === 'string' && code.trim().length > 0 && !/\s/.test(code);
+  }
+
+  function highlightInvalidInputs() {
+    let valid = true;
+    ['vernWS', 'glossWS', 'freeWS'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!isValidWsCode(el.value)) {
+        el.classList.add('invalid');
+        valid = false;
+      } else {
+        el.classList.remove('invalid');
+      }
+    });
+    return valid;
+  }
+
+  // Core transformation: builds the FLExText XML string from the selected story.
+  function buildFLExText(storyNode, vernWS, glossWS, freeWS) {
+    const storyName = storyNode.getAttribute('name') || '';
+    const lines = [];
+
+    lines.push('<?xml version="1.0" encoding="UTF-8"?>');
+    lines.push('<document version="2">');
+    lines.push('  <interlinear-text>');
+    lines.push(`    <item type="title" lang="${escXml(freeWS)}">${escXml(storyName)}</item>`);
+    lines.push('    <paragraphs>');
+
+    // Each verse becomes one <paragraph> with one <phrase>.
+    // Separating verses into distinct paragraphs preserves verse boundaries
+    // as visible paragraph breaks in the FLEx interlinear editor.
+    storyNode.querySelectorAll('Verse').forEach(verse => {
+      const vernLine  = verse.querySelector("StoryLine[lang='Vernacular']");
+      const glossLine = verse.querySelector("StoryLine[lang='NationalBt']");
+      const freeLine  = verse.querySelector("StoryLine[lang='InternationalBt']");
+
+      // Full vernacular sentence (reassembled from word list after BnB stripping).
+      const vernText  = vernLine  ? removeBnB(vernLine.textContent)           : '';
+      // National-language word-for-word gloss (space-separated, word-aligned).
+      const glossText = glossLine ? (glossLine.textContent  || '').trim()     : '';
+      // English (or other international) free translation — single prose cell.
+      const freeText  = freeLine  ? (freeLine.textContent   || '').trim()     : '';
+
+      // Split into word arrays for the interlinear word grid.
+      const vernWords  = vernText  ? vernText.split(/\s+/).filter(Boolean)  : [];
+      const glossWords = glossText ? glossText.split(/\s+/).filter(Boolean) : [];
+
+      lines.push('      <paragraph>');
+      lines.push('        <phrases>');
+      lines.push('          <phrase>');
+
+      // Phrase-level full sentence (required baseline text for FLEx import).
+      lines.push(`            <item type="txt" lang="${escXml(vernWS)}">${escXml(vernText)}</item>`);
+
+      // Phrase-level free translation (optional but highly recommended).
+      if (freeText) {
+        lines.push(`            <item type="gls" lang="${escXml(freeWS)}">${escXml(freeText)}</item>`);
+      }
+
+      // Word-by-word interlinear grid.
+      // Words are paired positionally: vernWords[i] ↔ glossWords[i].
+      // If counts differ, solo words at the end get an empty partner element
+      // rather than being dropped — FLEx accepts empty items.
+      lines.push('            <words>');
+      const maxLen = Math.max(vernWords.length, glossWords.length);
+      for (let i = 0; i < maxLen; i++) {
+        const vw = vernWords[i]  || '';
+        const gw = glossWords[i] || '';
+        lines.push('              <word>');
+        lines.push(`                <item type="txt" lang="${escXml(vernWS)}">${escXml(vw)}</item>`);
+        lines.push(`                <item type="gls" lang="${escXml(glossWS)}">${escXml(gw)}</item>`);
+        lines.push('              </word>');
+      }
+      lines.push('            </words>');
+
+      lines.push('          </phrase>');
+      lines.push('        </phrases>');
+      lines.push('      </paragraph>');
+    });
+
+    lines.push('    </paragraphs>');
+
+    // Language registry — FLEx uses this to map lang codes to configured WSes.
+    // Every lang code used anywhere in the document must appear here.
+    // Only the vernacular language gets vernacular="true".
+    lines.push('    <languages>');
+    lines.push(`      <language lang="${escXml(vernWS)}" font="Charis SIL" vernacular="true" />`);
+    lines.push(`      <language lang="${escXml(glossWS)}" font="Times New Roman" />`);
+    // Only emit a separate freeWS entry if it differs from glossWS.
+    if (freeWS !== glossWS) {
+      lines.push(`      <language lang="${escXml(freeWS)}" font="Times New Roman" />`);
+    }
+    lines.push('    </languages>');
+
+    lines.push('  </interlinear-text>');
+    lines.push('</document>');
+
+    return lines.join('\n');
+  }
+
+  function generateFLExText() {
+    const storySelect = document.getElementById('storySelect');
+    const selectedIndex = storySelect.value;
+
+    if (selectedIndex === 'Select a story') {
+      alert('Please select a story before generating.');
+      return;
+    }
+
+    // Trim whitespace from WS codes — a common copy-paste mistake.
+    const vernWS  = document.getElementById('vernWS').value.trim();
+    const glossWS = document.getElementById('glossWS').value.trim();
+    const freeWS  = document.getElementById('freeWS').value.trim();
+
+    if (!highlightInvalidInputs()) {
+      alert('Please fill in all writing system codes before generating.');
+      return;
+    }
+
+    const xml = buildFLExText(storyNodes[selectedIndex], vernWS, glossWS, freeWS);
+    const storyName = storyNodes[selectedIndex].getAttribute('name') || 'story';
+
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(new Blob([xml], { type: 'application/xml' }));
+    link.download = storyName.replace(/[\\/:*?"<>|]/g, '_') + '.flextext';
+    link.click();
+  }
+
+  function goBack() { window.history.back(); }
+  </script>
+</head>
+<body>
+  <div class="container">
+    <div id="browserWarning" class="browser-warning"></div>
+
+    <div class="card" style="max-width:600px;">
+      <div class="page-header">
+        <button class="btn btn-ghost" onclick="goBack()">&#8592; Back</button>
+        <div class="page-header-titles">
+          <h1>OneStory Interlinearizer</h1>
+          <p class="page-subtitle">Export as FLExText (.flextext) for FieldWorks Language Explorer</p>
+        </div>
+      </div>
+
+      <div class="file-row">
+        <input type="file" id="fileInput" />
+        <button class="btn btn-primary" onclick="populateStoryList()">Open</button>
+      </div>
+
+      <div hidden id="loadedOptions">
+        <div class="form-stack">
+
+          <div class="form-row">
+            <label class="form-label" for="nonBiblicalGroupSelect">Filter stories</label>
+            <select id="nonBiblicalGroupSelect" onchange="filterStories()">
+              <option value="All">All stories</option>
+              <option value="true">Non-Biblical only</option>
+              <option value="false">Biblical only</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label" for="storySelect">Story</label>
+            <select id="storySelect" style="flex:1;">
+              <option>Select a story</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">Back-translation style</label>
+            <div class="style-note">
+              <span class="style-note-badge">FLEx style only</span>
+              Word-aligned gloss with free translation per verse
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <!-- Writing System Codes -->
+          <div class="form-row">
+            <label class="form-label" for="vernWS">Vernacular WS code</label>
+            <input type="text" id="vernWS" class="ws-input" placeholder="e.g. bzd" spellcheck="false" autocomplete="off" />
+          </div>
+
+          <div class="form-row">
+            <label class="form-label" for="glossWS">Gloss WS code</label>
+            <input type="text" id="glossWS" class="ws-input" placeholder="e.g. id" spellcheck="false" autocomplete="off" />
+          </div>
+
+          <div class="form-row">
+            <label class="form-label" for="freeWS">Free translation WS code</label>
+            <input type="text" id="freeWS" class="ws-input" placeholder="e.g. en" value="en" spellcheck="false" autocomplete="off" />
+          </div>
+
+          <!-- Warning box -->
+          <div class="ws-warning">
+            <strong>⚠ Writing system codes must match exactly.</strong>
+            If a code doesn't match what FLEx has configured, FLEx will silently
+            create a <strong>duplicate writing system</strong> in your database — which
+            is messy to clean up.<br><br>
+            To find your codes in FLEx:
+            <span class="ws-path">Tools → Configure Writing Systems → [select WS] → General tab → Code field</span><br><br>
+            For detailed instructions, see the
+            <a href="https://github.com/rulingAnts/FlexText-Excel-Import/" target="_blank" rel="noopener">
+              FlexText Excel Import project ↗
+            </a>
+            (check the <code>docs/</code> folder for writing system guidance).
+          </div>
+
+        </div>
+
+        <div class="generate-row">
+          <button class="btn btn-accent" onclick="generateFLExText()">Download FLExText ›</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  function isSupportedBrowser() {
+    if (navigator.userAgentData && navigator.userAgentData.brands) {
+      return navigator.userAgentData.brands.some(b =>
+        ["Google Chrome", "Microsoft Edge", "Apple", "Chromium"].includes(b.brand)
+      );
+    }
+    const ua = navigator.userAgent.toLowerCase();
+    return ua.includes("edg") || ua.includes("chrome") || ua.includes("safari")
+        || ua.includes("chromium") || ua.includes("applewebkit");
+  }
+  const _w = document.getElementById('browserWarning');
+  if (!isSupportedBrowser()) {
+    _w.innerHTML = 'Unsupported browser. Please use Chrome, Edge, or Safari — or <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">download the Windows app</a>.';
+    alert("This app requires Chrome, Edge, or Safari. You will be redirected to the download page.");
+    window.location.href = "https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest";
+  }
+  </script>
+</body>
+</html>
