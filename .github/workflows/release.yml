@@ -1,0 +1,66 @@
+name: Build & Release
+
+# Triggers:
+#   - Push a tag like "v1.3.0" → builds and publishes a release automatically.
+#   - Run manually (Actions → Build & Release → Run workflow) → builds and
+#     saves a draft so you can review artifacts before publishing. Check
+#     "Mark as pre-release" if you also want the pre-release label.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      prerelease:
+        description: 'Mark as pre-release'
+        type: boolean
+        default: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            args: ''
+          - platform: macos-14      # Apple Silicon runner — native arm64 build
+            args: '--target aarch64-apple-darwin'
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Cache Rust build artifacts
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - run: npm ci
+
+      - name: Generate app icons from icon.png
+        run: npx tauri icon icon.png
+
+      - name: Build and release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Tag pushes use the pushed tag; manual runs use v<version from tauri.conf.json>.
+          tagName: ${{ github.event_name == 'push' && github.ref_name || 'v__VERSION__' }}
+          releaseName: ${{ github.event_name == 'push' && github.ref_name || 'v__VERSION__' }}
+          # Manual runs always create a draft so you can review before publishing.
+          releaseDraft: ${{ github.event_name == 'workflow_dispatch' }}
+          prerelease: ${{ github.event_name == 'workflow_dispatch' && inputs.prerelease }}
+          args: ${{ matrix.args }}

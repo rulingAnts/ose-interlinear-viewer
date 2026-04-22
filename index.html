@@ -11,7 +11,9 @@
     }
   </script>
   <script>
-    if ('serviceWorker' in navigator) {
+    // Only register the service worker for the web version.
+    // In Tauri the app is already local, so caching is pointless.
+    if ('serviceWorker' in navigator && !window.__TAURI__) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
           .then(reg => reg.update())
