@@ -41,7 +41,7 @@
 // *** UPDATE THIS STRING ON EVERY DEPLOY ***
 // Any change here changes this file, which triggers a fresh
 // SW install and cache replacement for all users on next load.
-const CACHE_VERSION = '2026-04-22T15:14:53Z';
+const CACHE_VERSION = '2026-04-25T14:00:27Z';
 const CACHE_NAME = 'ose-interlinear-' + CACHE_VERSION;
 
 // All files that make up the app shell.
