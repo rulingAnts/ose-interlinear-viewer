@@ -19,8 +19,8 @@
 > *means*. It is **not** a dependency and its code is **not** copied — see the licence wall in
 > §0.3, which is the reason that matters.
 >
-> The FlexText Editor repo keeps only a pointer to this document, in its
-> `plans/assign-by-upload.md` backlog.
+> This document is self-contained: nothing in it requires a change to the FlexText Editor repo,
+> and no phase is gated on one.
 
 ---
 
@@ -1125,7 +1125,7 @@ trusted.
 
 | Phase | Work | **GATE** — named, failable, with an expected result |
 |---|---|---|
-| **0** | Plan lands here; Seth answers D1–D13. | Every D has a recorded answer. And in the sibling, `grep -rn 'Users/Seth/GIT' plans/assign-by-upload.md` → **no matches** — the committed local path is replaced by this repo's URL. *(Done: `FXE@c386a89`.)* |
+| **0** | Plan lands here; Seth answers D1–D13. | Every D has a recorded answer. |
 | **1** | `OSE:tools/check-shell.mjs` + pre-commit wiring; version-site checker. | (a) The version checker **exits 1 on the current tree**, naming `package-lock.json` and `Cargo.lock` at 1.3.0. (b) `check-shell.mjs` **exits 1** when a bogus `./nope.js` is added to `APP_SHELL`, and **exits 1** before `./inject.html` is added — proving it catches the v108 shape. Then both green. |
 | **2** | **OSE round-trip proof, before any code.** Hand-edit a **copy** of the sample to insert one story built to the §3.8 template; open it in real OneStory Editor. | Six named checks: project opens with no exception; story lands in the chosen set; verse 1 is the story-notes slot; **all three StoryLines render in the right fields**; Crafter/Facilitator names resolve; and **a `TasksAllowedPf` missing a `*Fields` token really does hide that line** (§3.4). Then OSE's own Save leaves every other story byte-identical. **Only now is the golden fixture frozen.** |
 | **3** | `flextext-read.js`. | `node tools/test/flextext-read.test.mjs` passes §11.1, including: **no `note` item's text appears in any line's `baseline`, `free` or `lit`**, and R-CHAR rejects `U+000B` and a lone surrogate. |
@@ -1206,7 +1206,7 @@ production test-drive sign-off.
 | **D9b** | Keep or drop the MSI target | **drop it** | MSI needs the deprecated VBSCRIPT feature, and a WiX failure aborts the build and **takes the NSIS artifact with it.** But it changes what existing users get. |
 | **D10** | Write a `FreeTranslation` StoryLine | **no in v1** | Legal but unused here, and needs `FreeTranslationFields` unioned into `TasksAllowedPf` or it is invisible. Revisit if a target project already uses it. |
 | **D11** | Collapse whitespace runs in the Vernacular line | **on** | Matches `removeBnB`'s collapse so export→inject is stable; only 3 leading / 24 trailing exist in the real project, i.e. accidental there too. |
-| **D12** | Plan doc home | ~~open~~ **settled: `OSE:plans/` — here.** | It documents a change to this repo, so it lives with the code it governs. `FXE:plans/assign-by-upload.md` keeps a one-line pointer, because that is where the backlog entry originated. This also establishes `OSE:plans/` as a folder — tracked, never served (`frontendDist` is `../docs`, so nothing outside `docs/` ships), matching the sibling's convention. |
+| **D12** | Plan doc home | ~~open~~ **settled: `OSE:plans/` — here.** | It documents a change to this repo, so it lives with the code it governs, and nothing about it depends on the sibling. This also establishes `OSE:plans/` as a folder — tracked, never served (`frontendDist` is `../docs`, so nothing outside `docs/` ships). |
 | **D13** | Licence route | **reimplement the reader in `OSE:`; do not copy engine code** | AGPL forbids adding the NC restriction. Relicensing `ose-interlinear-viewer` to AGPL is a bigger decision than this feature and should not be made by a `git cp`. |
 
 ### Open risks worth naming
