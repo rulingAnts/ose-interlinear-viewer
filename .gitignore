@@ -1,3 +1,24 @@
+# ---------------------------------------------------------------------------
+# PRIVATE LANGUAGE DATA — never commit a real OneStory project.
+#
+# A .onestory file is a translation team's live corpus. It carries member names,
+# email addresses and stored HgPassword values alongside years of unpublished
+# language data. One was committed here under sample/ and had to be purged from
+# the entire history on 2026-08-13 — force-pushing every branch and every tag,
+# which broke every clone in existence.
+#
+# Keeping a real project LOCALLY, for reference and testing, is expected and
+# fine — that is exactly what these rules are for. Drop it in sample/ and git
+# will not see it. Do not defeat them with `git add -f`.
+# ---------------------------------------------------------------------------
+# NOTE: it must be `/sample/*`, not `/sample/`. Git does not descend into an
+# excluded DIRECTORY, so a `!` negation cannot rescue a file inside one — with
+# `/sample/` the README below is silently ignored too, and the folder vanishes
+# from the repo along with the explanation of why it is empty.
+*.onestory
+/sample/*
+!/sample/README.md
+
 # Dependencies
 node_modules/
 

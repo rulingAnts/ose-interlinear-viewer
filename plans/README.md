@@ -19,10 +19,13 @@ Files in `plans/` are outside `docs/` and so are correctly absent from that list
 
 This repo is public, and the files this app reads are live translation projects.
 
-- **Real `.onestory` files.** A project file carries the team's names, emails and stored
-  credentials alongside years of language data. One was committed under `sample/` and has since
-  been removed — **do not add another**, in `plans/`, in `docs/`, or as a test fixture. Work from
-  a local copy instead.
+- **Real `.onestory` files — *committed*.** A project file carries the team's names, emails and
+  stored credentials alongside years of language data. One was committed under `sample/` and had
+  to be purged from the entire history on 2026-08-13. **Keeping one locally is expected and
+  fine** — `sample/` is git-ignored for exactly that purpose, and several gates in
+  `onestory-injection.md` require a real project to test against. What must never happen is one
+  being committed: no `git add -f`, and never as a test fixture. See
+  [`../sample/README.md`](../sample/README.md).
 - **Real language data** — vernacular text, story titles, or anything lifted from a real project.
   Every example and fixture is synthetic; the placeholder language in these documents is "Alpha",
   ISO `qaa`, taken from the private-use range so it cannot be mistaken for a real one.
