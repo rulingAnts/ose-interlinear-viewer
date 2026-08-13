@@ -50,7 +50,7 @@ InternationalBt sentence }`. Two consequences the whole design hangs on:
 1. **Injection creates a NEW story. It is never an edit.** The forward exporter discards
    `story@guid` and every `Verse@guid`, so no identity link survives to update against — and a
    story's consultant apparatus (6,793 `ConsultantNote`s, 9,153 `Answer`s, 6,741 `Retelling`s,
-   1,410 `Anchor`s in the real Fayu project) hangs off the very `<Verse>` elements a replace
+   1,410 `Anchor`s in the reference project) hangs off the very `<Verse>` elements a replace
    would overwrite. **v1 has no replace mode**, and that is a correctness decision, not a scope cut.
 2. **The `.flextext` is the archival artifact; the `.onestory` is a destination.** The UI says so
    in those words (§6.6), because word alignment, morpheme analysis and audio timings exist only
@@ -69,12 +69,24 @@ documented, not an oversight. (**D13**)
 
 ### 0.4 Provenance of the facts in this document
 
-Every measurement below was taken directly from
-`OSE:sample/indo-fayu.onestory` — a real 8,805,065-byte Fayu project: 141 stories, 2,511 Verses,
-5,802 StoryLines, 43 Members, 14,313 `*guid` attributes. Behavioural claims about OneStory Editor
-itself come from its C# source at `bobeaton/OneStoryEditor` and are marked **[OSE-src]**; those
-are the claims Gate G2 exists to verify against the real application before anything is built on
-them.
+Every measurement below was taken from **the reference project** — a real, in-use OneStory
+project of 8,805,065 bytes: 141 stories, 2,511 Verses, 5,802 StoryLines, 43 Members, 14,313
+`*guid` attributes.
+
+> ⚠ **That file is deliberately NOT in this repository, and must not be added.** It is a
+> translation team's live corpus and it carries their names, emails and stored credentials. It was
+> removed from `sample/` on 2026-08-13 and this document is written to survive its absence: only
+> *structural statistics* are quoted here, never vernacular text, story titles or member data.
+> **Every example in this plan is synthetic** — the placeholder language is "Alpha", ISO `qaa`,
+> from the private-use range precisely so it cannot be mistaken for a real one.
+>
+> The phases that need a real project (Gate G2, Phase 5b, Phase 6c) say so explicitly and expect
+> you to supply one **locally, on a copy, never committed**. That is not a limitation to design
+> around; it is the only honest way to test a tool that writes to live language data.
+
+Behavioural claims about OneStory Editor itself come from its C# source at
+`bobeaton/OneStoryEditor` and are marked **[OSE-src]**; those are the claims Gate G2 exists to
+verify against the real application before anything is built on them.
 
 ---
 
@@ -130,7 +142,7 @@ Three things the design panel's top-ranked draft wanted, that this plan delibera
 
 ## 2. What each model can hold that the other cannot
 
-Counts measured from the sample. This table is the source of the loss report the UI renders.
+Counts measured from the reference project (§0.4). This table is the source of the loss report the UI renders.
 
 ### 2.1 OneStory holds; `.flextext` cannot → already gone by injection time, **unrecoverable**
 
@@ -318,7 +330,7 @@ it is a required test fixture, asserting `Err`.
 |---|---|
 | **R-FIRST** | `<Verses>` child 0 is always an empty `<Verse guid="…" first="true" />` — measured **141/141, and 0 of the 141 carries a StoryLine**. It is OSE's slot for story-wide notes and general test questions (of the 141, 72 carry TestQuestions/ConsultantNotes/CoachNotes children). **⚠ The composition detail:** the forward exporter iterates `querySelectorAll('Verse')`, which *includes* this verse, so **an exported flextext's phrase 0 is already empty**. Consume it rather than adding another — but see the provenance condition immediately below. |
 | **R-FIRST-PROV** | **The trigger is provenance, not emptiness.** Consume phrase 0 as the first-verse slot only when it is empty **AND** carries no `begin/end-time-offset`. A segmentation-mode blank first line **is a real timed silence span**, and consuming it would eat genuine data and shift every following verse — the plan would otherwise argue for preserving it in R-V-EMPTY and discard it here. When the source marker of §8 Phase 6 exists, use it as the primary discriminator. Both cases are round-trip fixtures. |
-| **R-V-EMPTY** | An empty phrase anywhere else → `<Verse guid="…" />` with no StoryLines. Legal — **8** non-first Verses in the sample carry no StoryLine — and correct, because a segmentation-mode blank line is real. |
+| **R-V-EMPTY** | An empty phrase anywhere else → `<Verse guid="…" />` with no StoryLines. Legal — **8** non-first Verses in the reference project carry no StoryLine — and correct, because a segmentation-mode blank line is real. |
 | **R-V-GUID** | Every Verse gets a fresh v4 guid. **Never reuse flextext phrase guids** — different namespace, and re-injecting would mint collisions. Corollary: **injection is not idempotent.** Two clicks make two stories; the name-collision warning is the only guard, which is why W3 must be loud. |
 | **R-V-NOVISIBLE** | Never emit `visible`. |
 
@@ -327,10 +339,10 @@ it is a required test fixture, asserting `Err`.
 | id | Rule |
 |---|---|
 | **R-V1** | `Vernacular = baseline`, verbatim, after: newlines → space (**mandatory** — 0 of 5,802 StoryLines contain a newline), trim, and whitespace-run collapse (**default on**, matching `removeBnB` so export→inject is stable — **D11**). |
-| **R-V2** | Rebuild from words **only** when baseline is empty and words are present, then flag `reconstructed` and render italic in the preview. Reason: `baselineFromWords()` (`FXE:docs/js/flextext.js:364-375`) treats a straight `"` as an *opening* mark, so `warope "ji" uru.` comes back as `warope " ji " uru.` Never space-join `w.txt` by hand — punctuation is a separate `<word>` and you get `Aita , warope .` |
+| **R-V2** | Rebuild from words **only** when baseline is empty and words are present, then flag `reconstructed` and render italic in the preview. Reason: `baselineFromWords()` (`FXE:docs/js/flextext.js:364-375`) treats a straight `"` as an *opening* mark, so `somi "ta" weni.` comes back as `somi " ta " weni.` Never space-join `w.txt` by hand — punctuation is a separate `<word>` and you get `Kalu , somi .` |
 | **R-V3** | XML-escape `& < > "` — including `>`, matching the file's 5,540 existing `&gt;`. |
 | **R-V4** | **Never strip or add bracket markup.** `[B&B …]`, `[V5]`, `[dia]` pass through verbatim. We cannot restore what `removeBnB` removed and must not invent it. If the baseline contains `[B&B`, say so (info). |
-| **R-V5** | A phrase with no vernacular but a gloss or free still gets a Verse with the lines it has. But **every** Verse carrying any StoryLine in the sample carries a Vernacular one (**2,362/2,362**), so a NationalBt-without-Vernacular verse is unprecedented — flag it amber. |
+| **R-V5** | A phrase with no vernacular but a gloss or free still gets a Verse with the lines it has. But **every** Verse carrying any StoryLine in the reference project carries a Vernacular one (**2,362/2,362**), so a NationalBt-without-Vernacular verse is unprecedented — flag it amber. |
 | **R-CHAR** | **Reject any code point outside XML 1.0's `Char` production** (`#x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD] | [#x10000-#x10FFFF]`), plus unpaired surrogates. See below — this is a blocker-class hazard. |
 
 **R-CHAR is not defensive padding.** The suite's own escaper handles exactly four characters
@@ -387,12 +399,12 @@ self-closed — that form is deliberate anti-false-diff formatting in OSE's own 
       <Verses>
         <Verse guid="{g0}" first="true" />
         <Verse guid="{g1}">
-          <StoryLine lang="Vernacular">Aita warope ji ate uru.</StoryLine>
+          <StoryLine lang="Vernacular">Kalu somi ta ru weni.</StoryLine>
           <StoryLine lang="NationalBt">dia pergi rumah_besar *** sungai</StoryLine>
           <StoryLine lang="InternationalBt">He went to the big house by the river.</StoryLine>
         </Verse>
         <Verse guid="{g2}">
-          <StoryLine lang="Vernacular">Fai.</StoryLine>
+          <StoryLine lang="Vernacular">Mesu.</StoryLine>
         </Verse>
         <Verse guid="{g3}" />
       </Verses>
@@ -403,7 +415,7 @@ Hard constraints baked into the emitter, each with a comment naming its source:
 
 - `lang` is one of the **keywords** `Vernacular` / `NationalBt` / `InternationalBt` /
   `FreeTranslation` — **never a BCP-47 code.** The setter's `default:` case is a
-  `Debug.Assert(false)` that is a **no-op in release**, so `lang="fau"` is **silently discarded**
+  `Debug.Assert(false)` that is a **no-op in release**, so `lang="qaa"` is **silently discarded**
   on load **[OSE-src]**.
 - StoryLine order is `Vernacular, NationalBt, InternationalBt` — 0 of 2,511 Verses violate it, and
   the schema declares an order-significant `xs:sequence`.
@@ -456,13 +468,13 @@ Because they differ exactly where it matters:
 
 | # | Vernacular written | flextext words | Surface | Emitted NationalBt | Note |
 |---|---|---|---|---|---|
-| 1 | `Aita warope uru.` | `Aita`/dia, `warope`/pergi, `uru`/sungai, `.`(punct) | 3 | `dia pergi sungai` | Attached punctuation does **not** break alignment. |
-| 2 | `Fai — doi .` | `Fai`/batu, `—`(punct), `doi`/rumah, `.`(punct) | 4 | `batu *** rumah` | **Detached punctuation is a surface token and must get a placeholder** — index-pairing emits `batu rumah`, landing *rumah* on the em-dash and shifting every later gloss. |
-| 3 | `Aita ji ate uru.` | `Aita`/dia, `ji ate`(phrase)/`rumah besar`, `uru`/sungai, `.`(punct) | 4 | `dia rumah_besar *** sungai` | Chained item spans two surface tokens; `sungai` still lands on `uru.` |
-| 4 | `Aita warope uru.` | `warope` unglossed | 3 | `dia *** sungai` | Medial hole. |
-| 5 | `Aita warope uru.` | no glosses | 3 | *(line omitted)* | All-hole ⇒ no NationalBt StoryLine. |
-| 6 | `Fai.` | morpheme-glossed only | 1 | *(omitted)* + morph warning | §4.7 |
-| 7 | `Fai.` | `Fai`/batu, `''`/besar (padding) | 1 | `batu besar` | Orphan recovered (§4.6). |
+| 1 | `Kalu somi weni.` | `Kalu`/dia, `somi`/pergi, `weni`/sungai, `.`(punct) | 3 | `dia pergi sungai` | Attached punctuation does **not** break alignment. |
+| 2 | `Mesu — nari .` | `Mesu`/batu, `—`(punct), `nari`/rumah, `.`(punct) | 4 | `batu *** rumah` | **Detached punctuation is a surface token and must get a placeholder** — index-pairing emits `batu rumah`, landing *rumah* on the em-dash and shifting every later gloss. |
+| 3 | `Kalu ta ru weni.` | `Kalu`/dia, `ta ru`(phrase)/`rumah besar`, `weni`/sungai, `.`(punct) | 4 | `dia rumah_besar *** sungai` | Chained item spans two surface tokens; `sungai` still lands on `weni.` |
+| 4 | `Kalu somi weni.` | `somi` unglossed | 3 | `dia *** sungai` | Medial hole. |
+| 5 | `Kalu somi weni.` | no glosses | 3 | *(line omitted)* | All-hole ⇒ no NationalBt StoryLine. |
+| 6 | `Mesu.` | morpheme-glossed only | 1 | *(omitted)* + morph warning | §4.7 |
+| 7 | `Mesu.` | `Mesu`/batu, `''`/besar (padding) | 1 | `batu besar` | Orphan recovered (§4.6). |
 | 8 | `สวัสดีครับ` | one token | 1 | one gloss token | Unsegmentable script — stated in the loss report, not a bug. |
 
 ### 4.3 When counts disagree — the full table
@@ -486,7 +498,7 @@ in which case that slot is a hole.
 The gloss stays **whole** (internal spaces → `_`) on the **first** surface token of its span; the
 remaining tokens of the span are holes.
 
-The rejected alternative — splitting `rumah besar` across `ji` and `ate` — asserts `ji`→`rumah`,
+The rejected alternative — splitting `rumah besar` across `ta` and `ru` — asserts `ji`→`rumah`,
 `ate`→`besar`, precisely the analysis the linguist rejected by chaining them. **Writing a false
 alignment is worse than writing an incomplete one**, and this is the one place in the design where
 that principle is load-bearing.
@@ -542,7 +554,7 @@ out-of-repo backup and an atomic same-directory rename.** The DOM round-trip is 
 
 ### 5.1 Why not a DOM round-trip
 
-Re-serialising the 8.8 MB sample changes **every line**: 62,388 CRLFs → LF, and the
+Re-serialising the reference project changes **every line**: 62,388 CRLFs → LF, and the
 `<?xml version="1.0"?>` declaration (measured: **no `encoding` attribute, no BOM**) is rewritten.
 Worse, serializers turn the `&#xD;&#xA;` escapes inside the 1,102-char `PanoramaFrontMatter` RTF
 attribute into literal CR/LF, which XML attribute-value normalisation then flattens to spaces on
@@ -567,7 +579,7 @@ under *Old Stories*, discovered weeks later. Attribute values are read unescaped
 containing `&amp;` matches.
 
 **Belt-and-braces, retained even with a real parser:** refuse projects containing XML comments,
-CDATA or processing instructions — measured **0, 0 and 0** in the 8.8 MB sample. With those banned,
+CDATA or processing instructions — measured **0, 0 and 0** in the reference project. With those banned,
 a literal `<` cannot appear in text or attribute values, which keeps the byte arithmetic trivially
 auditable and deletes the whole "`</stories>` inside a comment" hazard class for five lines.
 
@@ -680,7 +692,7 @@ violation instead of succeeding — safer, but the opposite of what a naive comm
 accept a length, offset or size from the webview: JS `String.length` counts UTF-16 code units, not
 UTF-8 bytes, so every curly quote makes the expectation short by one byte and a correct write gets
 rolled back with a corruption message. The sample has 4,542 non-ASCII bytes and 31 StoryLines
-containing typographic quotes or dashes; Fayu happens to use an ASCII orthography, but a
+containing typographic quotes or dashes; the reference orthography happens to be ASCII, but a
 Vietnamese, Yoruba or Amharic project would fail on essentially every story. A required fixture
 contains `U+201C` and a 4-byte astral character.
 
@@ -715,7 +727,7 @@ teammate already has — which the same 3-way merger faithfully replicates as a 
 the **Mercurial parent revision** in the receipt at inject time (`.hg/dirstate`'s first 20 bytes, or
 `hg parents --template {node}` when hg is on PATH) and **refuse undo if the parent has advanced or
 the `.onestory` is committed-clean relative to it**. If `.hg` is absent, keep the hash check and say
-plainly in the dialog that sharing cannot be detected. Gate test: commit the sample in a throwaway
+plainly in the dialog that sharing cannot be detected. Gate test: commit a copy of that local project in a throwaway
 hg repo, inject, `hg commit`, assert undo **refuses**.
 
 ### 5.7 Windows path realities
@@ -803,19 +815,19 @@ from the Chorus history. The safe path and the unsafe path must not look like th
 ### 6.4 The preview — the main safety feature
 
 **Header strip**
-> **Bisere pou re bita** → *Non-Biblical Stories* (43rd story) · 24 verses · 187 vernacular words ·
+> **Mesu nari kobe** → *Non-Biblical Stories* (43rd story) · 24 verses · 187 vernacular words ·
 > 184 glosses · free translation on 22 of 24
-> Lines: **fau → Vernacular (Fayu)** · **ind → NationalBt (Indonesian)** · **ind → InternationalBt
-> (Terjemahan Bebas)**
+> Lines: **qaa → Vernacular (Alpha)** · **ind → NationalBt (Indonesian)** · **ind → InternationalBt
+> (Free Translation)**
 
 **Verse table**, one row per Verse:
 
 | # | Vernacular | NationalBt | InternationalBt | |
 |---|---|---|---|---|
 | 1 | *(empty leading verse)* | | | |
-| 2 | Aita warope ji ate uru. | dia · pergi · rumah_besar · *** · sungai | He went to the big house. | `4/4` |
-| 3.1 | Fai. | batu | Batu! | `1/1` |
-| 3.2 | Doi kokoe. | rumah · *** | | ⚠ `2/1` |
+| 2 | Kalu somi ta ru weni. | dia · pergi · rumah_besar · *** · sungai | He went to the big house. | `4/4` |
+| 3.1 | Mesu. | batu | Batu! | `1/1` |
+| 3.2 | Nari kobe. | rumah · *** | | ⚠ `2/1` |
 
 - Gloss tokens carry a hairline separator so **positional pairing is visible** — the user must be
   able to see which gloss lands on which word *before* writing.
@@ -825,11 +837,11 @@ from the Chorus history. The safe path and the unsafe path must not look like th
   visible.
 - Reconstructed baselines (R-V2) in italic.
 - **The vernacular column renders in the project's own `<LanguageInfo>` font, size and colour.** For
-  a Fayu-speaking facilitator with limited English, the verse table is the only readable part of this
+  a vernacular-speaking facilitator with limited English, the verse table is the only readable part of this
   page; making it look like OneStory Editor is the difference between "I can check this" and "I click
   and hope".
 - All rows rendered, scroll box capped ~60vh. Scrolling past 90 rows *is* the "this is bigger than I
-  thought" signal — 90 is the largest story in the sample.
+  thought" signal — 90 is the largest story in the reference project.
 
 > ⚠ **Build this table with `createElement` / `textContent` only.** This page is the first thing in
 > the repo to render untrusted file content as markup, and `tauri.conf.json` currently sets
@@ -844,7 +856,7 @@ from the Chorus history. The safe path and the unsafe path must not look like th
 **Footer strip — what will physically happen**
 > Adds **1** `<story>` at the end of `<stories SetName="Non-Biblical Stories">`.
 > Nothing else in the project changes — every other byte is copied unchanged.
-> A backup is saved first to `%LOCALAPPDATA%\FlexTextOseInject\backups\indo-fayu\indo-fayu.onestory.20260813-094500Z.flextext-backup`.
+> A backup is saved first to `%LOCALAPPDATA%\FlexTextOseInject\backups\example-project\example-project.onestory.20260813-094500Z.flextext-backup`.
 
 ### 6.5 Warnings — red blocks, amber never does
 
@@ -857,10 +869,10 @@ One summary line per class with `(show 12)` disclosure — never 251 rows.
 | W1c | amber | *"3 verses could not be aligned reliably. Their gloss line will be left out rather than written misaligned."* |
 | W2 | amber | *"3 verses have no vernacular text. They will be added as empty verses."* |
 | W2b | info | *"2 of 24 verses have no free translation."* |
-| W3 | amber | *"A story named 'Dua Pohon' already exists in Non-Biblical Stories. The new story will be named 'Dua Pohon (2)'."* Never red — **7 duplicate names already exist** in the sample. |
+| W3 | amber | *"A story named 'Dua Pohon' already exists in Non-Biblical Stories. The new story will be named 'Dua Pohon (2)'."* Never red — **7 duplicate names already exist** in the reference project. |
 | W4 | amber | *"This story has 240 verses. The largest story already in this project has 90."* Threshold derived from the file, never guessed. |
 | W5 | info | *"Indonesian (ind) is used by two lines in this project. The mapping below is by position in the FLExText file, not by language code."* |
-| W5b | amber | *"The FLExText uses 'und' for its baseline. No language in this project uses that code. It has been mapped to Vernacular (Fayu, fau) because of where it appears in the file — check the mapping."* + auto-expand Advanced. |
+| W5b | amber | *"The FLExText uses 'und' for its baseline. No language in this project uses that code. It has been mapped to Vernacular (Alpha, qaa) because of where it appears in the file — check the mapping."* + auto-expand Advanced. |
 | **W6** | amber, **always shown, never collapsible** | The loss report — §6.6. |
 | W-SEG | info | *"12 verses contain more than one sentence (using this project's SentenceFinalPunct '.!?:')."* Uses the project's own metadata; we never re-segment. |
 | W-NFC | info | Normalisation note **with a before/after example**, not a bare count (§3.7). |
@@ -868,8 +880,8 @@ One summary line per class with `(show 12)` disclosure — never 251 rows.
 | W-CHAR | **red** | *"Verse 12 contains a character that cannot be stored in an XML file (U+000B). OneStory Editor would refuse to open the whole project."* (§3.6 R-CHAR) |
 | W7 | **red** | *"NNN.flextext is not a FLExText file (its root element is `<X>`)."* |
 | W8 | **red** | *"NNN.flextext contains no verses to add."* |
-| W9 | **red** | *"indo-fayu.onestory has changed since you opened it — someone may have saved it in OneStory Editor. Choose the project again."* |
-| W10 | **red** | *"Could not write to indo-fayu.onestory. Your project has not been changed. (reason) Your original is safe at `<backup path>`."* |
+| W9 | **red** | *"example-project.onestory has changed since you opened it — someone may have saved it in OneStory Editor. Choose the project again."* |
+| W10 | **red** | *"Could not write to example-project.onestory. Your project has not been changed. (reason) Your original is safe at `<backup path>`."* |
 | W-OSE | **red** | *"OneStory Editor has this project open. Close it completely and try again."* (§5.4) |
 
 **Every terminal error names a path the user can act on. A failure message with no path is a bug.**
@@ -1127,11 +1139,11 @@ trusted.
 |---|---|---|
 | **0** | Plan lands here; Seth answers D1–D13. | Every D has a recorded answer. |
 | **1** | `OSE:tools/check-shell.mjs` + pre-commit wiring; version-site checker. | (a) The version checker **exits 1 on the current tree**, naming `package-lock.json` and `Cargo.lock` at 1.3.0. (b) `check-shell.mjs` **exits 1** when a bogus `./nope.js` is added to `APP_SHELL`, and **exits 1** before `./inject.html` is added — proving it catches the v108 shape. Then both green. |
-| **2** | **OSE round-trip proof, before any code.** Hand-edit a **copy** of the sample to insert one story built to the §3.8 template; open it in real OneStory Editor. | Six named checks: project opens with no exception; story lands in the chosen set; verse 1 is the story-notes slot; **all three StoryLines render in the right fields**; Crafter/Facilitator names resolve; and **a `TasksAllowedPf` missing a `*Fields` token really does hide that line** (§3.4). Then OSE's own Save leaves every other story byte-identical. **Only now is the golden fixture frozen.** |
+| **2** | **OSE round-trip proof, before any code.** Hand-edit a **copy of a real project you supply locally** (§0.4) to insert one story built to the §3.8 template; open it in real OneStory Editor. | Six named checks: project opens with no exception; story lands in the chosen set; verse 1 is the story-notes slot; **all three StoryLines render in the right fields**; Crafter/Facilitator names resolve; and **a `TasksAllowedPf` missing a `*Fields` token really does hide that line** (§3.4). Then OSE's own Save leaves every other story byte-identical. **Only now is the golden fixture frozen.** |
 | **3** | `flextext-read.js`. | `node tools/test/flextext-read.test.mjs` passes §11.1, including: **no `note` item's text appears in any line's `baseline`, `free` or `lit`**, and R-CHAR rejects `U+000B` and a lone surrogate. |
 | **4** | `onestory-story.js` — alignment + emitter. | (a) `align.test.mjs` reproduces **every row of §4.2 exactly, string-for-string**. (b) `onestory-story.test.mjs` asserts the block **byte-for-byte** against the Phase-2 golden fixture: CRLF, the indent ladder, `" />"`, `<StoryCrafter …></StoryCrafter>`, attribute order, `&gt;`, the leading `first="true"` verse, no `visible`, **no BCP-47 in any `lang`**. |
-| **5** | Rust: open, plan, commit, undo, backup, verification. | (a) `cargo test` offset suite: normal set; **self-closed `<stories … />`**; a comment containing `</stories>`; `SetName` containing `&amp;`; missing set → `Err`; **duplicate SetName → `Err`**; **zero-story project → `Err`, not a guess**. (b) **The splice proof:** inject into a copy of the 8.8 MB sample, then `node tools/verify-splice.mjs orig new` prints `identical outside [a, a+n)`; `PanoramaFrontMatter` and `<Members>` byte ranges identical. (c) **A deliberately mis-anchored splice inside `<Verses>` is REJECTED** by the structural assertion. (d) A fixture containing `U+201C` and a 4-byte astral character produces a plan length equal to the actual on-disk delta. (e) An injected persist failure leaves the target's bytes **and mtime** untouched. (f) `inject → undo → sha256 == pre-injection hash`. (g) In a throwaway hg repo: inject, `hg commit`, **undo refuses**. |
-| **6** | `inject.html`, preview, loss report, warnings, platform gating. **Then** the forward-path provenance change (`flextext-write.js` extraction + guids + `<item type="source">`). | (a) Web build: card visibly disabled, click reveals the note; `inject.html` opened directly shows the note and no form. (b) macOS build: card **absent**. (c) Windows: inject a **segmentation-mode** `.flextext` (offsets + note items) into a copy of the sample, open in OneStory Editor, confirm item by item — right set, right name, verse 1 is the notes slot, verse counts match the preview, all three lines render, **the gloss tokens sit under the intended words**, and **no `audio 0:00.000–…` string appears anywhere in the story**. (d) OSE Save/Reopen leaves the story unchanged. (e) Provenance regression: the new export differs from captured pre-refactor output by **exactly 3 added lines/attributes and nothing else** — a diff-count assertion, not an eyeball — and the result still **imports into FLEx** without error. |
+| **5** | Rust: open, plan, commit, undo, backup, verification. | (a) `cargo test` offset suite: normal set; **self-closed `<stories … />`**; a comment containing `</stories>`; `SetName` containing `&amp;`; missing set → `Err`; **duplicate SetName → `Err`**; **zero-story project → `Err`, not a guess**. (b) **The splice proof:** inject into a copy of a real multi-megabyte project (supplied locally, never committed), then `node tools/verify-splice.mjs orig new` prints `identical outside [a, a+n)`; `PanoramaFrontMatter` and `<Members>` byte ranges identical. (c) **A deliberately mis-anchored splice inside `<Verses>` is REJECTED** by the structural assertion. (d) A fixture containing `U+201C` and a 4-byte astral character produces a plan length equal to the actual on-disk delta. (e) An injected persist failure leaves the target's bytes **and mtime** untouched. (f) `inject → undo → sha256 == pre-injection hash`. (g) In a throwaway hg repo: inject, `hg commit`, **undo refuses**. |
+| **6** | `inject.html`, preview, loss report, warnings, platform gating. **Then** the forward-path provenance change (`flextext-write.js` extraction + guids + `<item type="source">`). | (a) Web build: card visibly disabled, click reveals the note; `inject.html` opened directly shows the note and no form. (b) macOS build: card **absent**. (c) Windows: inject a **segmentation-mode** `.flextext` (offsets + note items) into a copy of that same local project, open in OneStory Editor, confirm item by item — right set, right name, verse 1 is the notes slot, verse counts match the preview, all three lines render, **the gloss tokens sit under the intended words**, and **no `audio 0:00.000–…` string appears anywhere in the story**. (d) OSE Save/Reopen leaves the story unchanged. (e) Provenance regression: the new export differs from captured pre-refactor output by **exactly 3 added lines/attributes and nothing else** — a diff-count assertion, not an eyeball — and the result still **imports into FLEx** without error. |
 | **7** | NSIS config, workflow assert, `release-mac.yml` fix, five version sites → 2.1.0 with both lockfiles regenerated, README/CLAUDE.md rewrite. | (a) A local Windows build produces `bundle/nsis/OSE Interlinear Viewer_2.1.0_x64-setup.exe`. (b) Version check → **5/5 sites agree**, lockfiles included. (c) Tagged release run green **and** the assert step printed the `-setup.exe` name and size. (d) **The published release page lists the NSIS `-setup.exe`** — checked on the page, not assumed. (e) **Fresh-VM install as a non-admin user succeeds and the app launches.** |
 
 ---
@@ -1160,10 +1172,9 @@ hole preserved; orphan appended; projection failure with equal counts → index-
 counts → `null` + flag; paragraph-join does **not** truncate per phrase.
 
 **11.3 `roundtrip.test.mjs`** — the composition test, and the reason the forward extraction exists.
-Take a **synthetic** `<story>` fragment modelled on the sample's shape (**never real vernacular text,
+Take a **synthetic** `<story>` fragment modelled on the reference project's shape (**never real vernacular text,
 never a real `<Member>` line, never a real speaker name** — the sibling's `FXE:plans/README.md`
-carries the exclusion list this follows, and `OSE:sample/indo-fayu.onestory` is a real project with
-43 named members in it), run
+carries the exclusion list this follows), run
 write → read → build, and assert against the original with the documented losses applied:
 
 - verse count identical (proves **R-FIRST**), **and** a segmentation-mode fixture whose phrase 0 is a

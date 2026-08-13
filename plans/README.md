@@ -17,14 +17,22 @@ Files in `plans/` are outside `docs/` and so are correctly absent from that list
 
 ## What may NOT go in here
 
-This repo is public, and `sample/indo-fayu.onestory` is a real translation project.
+This repo is public, and the files this app reads are live translation projects.
 
-- **Real language data** — vernacular text, story content, or anything lifted from a real project.
-  Test fixtures are synthetic.
-- **Real people** — `<Member>` names, emails, `HgUsername`/`HgPassword`, speaker names, consent
-  records. The sample file contains 43 named members; do not quote them.
+- **Real `.onestory` files.** A project file carries the team's names, emails and stored
+  credentials alongside years of language data. One was committed under `sample/` and has since
+  been removed — **do not add another**, in `plans/`, in `docs/`, or as a test fixture. Work from
+  a local copy instead.
+- **Real language data** — vernacular text, story titles, or anything lifted from a real project.
+  Every example and fixture is synthetic; the placeholder language in these documents is "Alpha",
+  ISO `qaa`, taken from the private-use range so it cannot be mistaken for a real one.
+- **Real people** — member names, emails, `HgUsername`/`HgPassword`, speaker names, consent records.
 - **Credentials of any kind**, including anything from a LanguageDepot or Chorus configuration.
 - **An unfixed security weakness described in operational detail** while it is still live.
+
+Structural statistics about a real project — element counts, byte lengths, how often an attribute
+varies — are fine, and are what these plans are built on. They describe the *format*, not the
+content.
 
 The test before adding a file: *would you be comfortable if a stranger read this the day it landed?*
 
