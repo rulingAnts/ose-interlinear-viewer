@@ -5,7 +5,11 @@
   "version": "2.0.1",
   "author": "Seth Johnston",
   "scripts": {
+    "doctor": "node tools/doctor-hooks.mjs",
+    "check": "node tools/check-shell.mjs && node tools/check-versions.mjs",
+    "predev": "node tools/doctor-hooks.mjs",
     "dev": "tauri dev",
+    "prebuild": "node tools/doctor-hooks.mjs && node tools/check-shell.mjs && node tools/check-versions.mjs",
     "build": "tauri build",
     "tauri": "tauri",
     "prepare": "git config core.hooksPath .githooks"

@@ -1,19 +1,112 @@
 #!/bin/sh
-# Updates CACHE_VERSION in sw.js to the current UTC timestamp on every commit.
-# This ensures the service worker fetches a fresh cache after each deployment.
+# ============================================================
+# pre-commit — guards, then the CACHE_VERSION stamp.
+# ============================================================
 #
 # This hook lives in .githooks/ (tracked by git) rather than .git/hooks/
-# (untracked). Run `npm install` after cloning to activate it — the
-# `prepare` script in package.json runs `git config core.hooksPath .githooks`.
+# (untracked). It is activated by core.hooksPath, which the "prepare"
+# script in package.json sets — i.e. only if someone ran `npm install`.
+#
+# ⚠ If this hook is not wired up, NONE of the guards below run, and their
+#   silence looks exactly like success. `npm run dev` refuses to start
+#   until it is wired (tools/doctor-hooks.mjs, run as "predev"), because
+#   a check that only runs from this file can never detect this file
+#   being absent. Run `npm run doctor` to check by hand.
+#
+# Order matters: refuse bad commits BEFORE mutating the tree with the
+# CACHE_VERSION stamp, so a rejected commit leaves nothing behind.
 
-TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+fail=0
 
-# Replace the CACHE_VERSION value in sw.js in-place.
-# The sed -i '' form is required on macOS; Linux uses sed -i without the ''.
-if sed --version 2>/dev/null | grep -q GNU; then
-  sed -i "s|const CACHE_VERSION = '[^']*'|const CACHE_VERSION = '$TIMESTAMP'|" docs/sw.js
-else
-  sed -i '' "s|const CACHE_VERSION = '[^']*'|const CACHE_VERSION = '$TIMESTAMP'|" docs/sw.js
+# ------------------------------------------------------------
+# GUARD 1 — never commit a real OneStory project.
+# ------------------------------------------------------------
+# A .onestory file is a translation team's live corpus: member names,
+# email addresses and stored HgPassword values alongside years of
+# unpublished language data. One was committed under sample/ and had to
+# be purged from the entire history on 2026-08-13 — force-pushing every
+# branch and every tag, breaking every clone in existence. Even then the
+# data had been public for months and the credentials needed rotating.
+#
+# .gitignore already covers sample/ and *.onestory, but .gitignore is a
+# convention: `git add -f` walks straight past it. This is the hard stop.
+# It checks the INDEX, so it catches the file however it got staged.
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+offending=$(printf '%s\n' "$staged" | grep -i '\.onestory$')
+
+if [ -n "$offending" ]; then
+  echo "" >&2
+  echo "  ┌──────────────────────────────────────────────────────────────┐" >&2
+  echo "  │  COMMIT REFUSED — a .onestory project is staged              │" >&2
+  echo "  └──────────────────────────────────────────────────────────────┘" >&2
+  echo "" >&2
+  printf '%s\n' "$offending" | sed 's/^/      /' >&2
+  echo "" >&2
+  echo "  A .onestory file carries the team's names, emails and stored" >&2
+  echo "  HgPassword values alongside unpublished language data. It must" >&2
+  echo "  never be committed — not as a sample, not as a test fixture," >&2
+  echo "  not temporarily." >&2
+  echo "" >&2
+  echo "  Keep it locally instead: sample/ is git-ignored for exactly" >&2
+  echo "  this purpose. See sample/README.md." >&2
+  echo "" >&2
+  echo "      git restore --staged <file>" >&2
+  echo "" >&2
+  echo "  If you believe you need a project file in the repo, you need a" >&2
+  echo "  synthetic fixture instead." >&2
+  echo "" >&2
+  fail=1
 fi
 
-git add docs/sw.js
+# ------------------------------------------------------------
+# GUARD 2 — APP_SHELL in docs/sw.js must match docs/ on disk.
+# ------------------------------------------------------------
+# cache.addAll is atomic: one 404 in APP_SHELL stops the new service
+# worker activating and pins every web user to the old app forever.
+# ------------------------------------------------------------
+# GUARD 3 — the five version sites must agree.
+# ------------------------------------------------------------
+# The lockfiles are the ones that rot; a mismatch means the installer is
+# named something other than what was actually built.
+#
+# Both are node scripts. If node is missing we FAIL rather than skip —
+# a guard that quietly does nothing is worse than no guard at all.
+if ! command -v node >/dev/null 2>&1; then
+  echo "" >&2
+  echo "  COMMIT REFUSED — node is not on PATH, so the APP_SHELL and version" >&2
+  echo "  checks cannot run. Install node, or bypass deliberately with" >&2
+  echo "  --no-verify if you know what you are skipping." >&2
+  echo "" >&2
+  fail=1
+else
+  node "$(git rev-parse --show-toplevel)/tools/check-shell.mjs" || fail=1
+  node "$(git rev-parse --show-toplevel)/tools/check-versions.mjs" || fail=1
+fi
+
+if [ "$fail" -ne 0 ]; then
+  echo "pre-commit: commit refused." >&2
+  exit 1
+fi
+
+# ------------------------------------------------------------
+# Stamp CACHE_VERSION in docs/sw.js with the current UTC time.
+# ------------------------------------------------------------
+# Any change to sw.js makes the browser install a fresh service worker,
+# which is what pushes an update out to web users. Only stamp when the
+# commit actually touches docs/ — stamping on every commit would
+# invalidate every user's cache for a change to plans/ or a typo in the
+# README.
+if printf '%s\n' "$staged" | grep -q '^docs/'; then
+  TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+  # The sed -i '' form is required on macOS; GNU sed uses -i without the ''.
+  if sed --version 2>/dev/null | grep -q GNU; then
+    sed -i "s|const CACHE_VERSION = '[^']*'|const CACHE_VERSION = '$TIMESTAMP'|" docs/sw.js
+  else
+    sed -i '' "s|const CACHE_VERSION = '[^']*'|const CACHE_VERSION = '$TIMESTAMP'|" docs/sw.js
+  fi
+
+  git add docs/sw.js
+fi
+
+exit 0
