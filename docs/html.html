@@ -285,14 +285,24 @@
     <table>
     <tbody>
       <tr><td><table><tbody>
+        <!-- Count the baseline words so surplus glosses can be folded onto
+             the last one instead of producing gloss cells with no word above
+             them. See docs/js/interlinear-align.js — same rule, and the JS is
+             the reference implementation; this XSLT cannot import it. -->
+        <xsl:variable name="vernCount">
+          <xsl:call-template name="countWords">
+            <xsl:with-param name="text" select="normalize-space(.)"/>
+          </xsl:call-template>
+        </xsl:variable>
         <tr class="lVernacular">
             <xsl:call-template name="tokenizeAndWrap">
-            <xsl:with-param name="text" select="."/>
+            <xsl:with-param name="text" select="normalize-space(.)"/>
           </xsl:call-template>
         </tr>
         <tr class="lGloss">
             <xsl:call-template name="tokenizeAndWrapWithGloss">
-            <xsl:with-param name="text" select="following-sibling::*[@lang='NationalBt'][1]" />
+            <xsl:with-param name="text" select="normalize-space(following-sibling::*[@lang='NationalBt'][1])" />
+            <xsl:with-param name="remaining" select="number($vernCount)" />
           </xsl:call-template>
         </tr></tbody></table>
       </td></tr>
@@ -335,10 +345,55 @@
 </xsl:template>
 
 
-<!-- New template for wrapping words with gloss elements -->
+<!-- Counts space-separated tokens. XSLT 1.0 has no tokenize(), so this
+     recurses. Only used to find the baseline word count. -->
+<xsl:template name="countWords">
+  <xsl:param name="text"/>
+  <xsl:param name="acc" select="0"/>
+  <xsl:choose>
+    <xsl:when test="contains($text, ' ')">
+      <xsl:call-template name="countWords">
+        <xsl:with-param name="text" select="substring-after($text, ' ')"/>
+        <xsl:with-param name="acc" select="$acc + 1"/>
+      </xsl:call-template>
+    </xsl:when>
+    <xsl:when test="string-length($text) &gt; 0">
+      <xsl:value-of select="$acc + 1"/>
+    </xsl:when>
+    <xsl:otherwise>
+      <xsl:value-of select="$acc"/>
+    </xsl:otherwise>
+  </xsl:choose>
+</xsl:template>
+
+<xsl:template name="padGlossSlots">
+  <xsl:param name="n"/>
+  <xsl:if test="$n &gt; 0">
+    <td><span class="lGloss"></span></td>
+    <xsl:call-template name="padGlossSlots">
+      <xsl:with-param name="n" select="$n - 1"/>
+    </xsl:call-template>
+  </xsl:if>
+</xsl:template>
+
+<!-- Wraps gloss tokens, one cell per baseline word.
+     $remaining is how many baseline words are left. When it reaches 1 this
+     is the last word, so ALL remaining gloss text goes into that one cell
+     rather than spilling into cells with no word above them. Pass -1 for
+     unlimited (the old behaviour).
+     Unlike the FLExText and TSV exports, a '***' hole marker is left VISIBLE
+     here: this output is read by a person, and a visible gap is informative. -->
 <xsl:template name="tokenizeAndWrapWithGloss">
   <xsl:param name="text"/>
+  <xsl:param name="remaining" select="-1"/>
   <xsl:choose>
+    <xsl:when test="$remaining = 1">
+      <td>
+        <span class="lGloss">
+          <xsl:value-of select="$text"/>
+        </span>
+      </td>
+    </xsl:when>
     <xsl:when test="contains($text, ' ')">
       <td>
         <span class="lGloss">
@@ -348,6 +403,12 @@
       <!-- Recursive call with the remaining text -->
       <xsl:call-template name="tokenizeAndWrapWithGloss">
         <xsl:with-param name="text" select="substring-after($text, ' ')"/>
+        <xsl:with-param name="remaining">
+          <xsl:choose>
+            <xsl:when test="$remaining &gt; 0"><xsl:value-of select="$remaining - 1"/></xsl:when>
+            <xsl:otherwise>-1</xsl:otherwise>
+          </xsl:choose>
+        </xsl:with-param>
       </xsl:call-template>
     </xsl:when>
     <xsl:otherwise>
@@ -356,6 +417,15 @@
           <xsl:value-of select="$text"/>
         </span>
       </td>
+      <!-- Gloss ran out before the baseline did. Emit empty cells so both
+           rows have the same number of columns; without this the table rows
+           are ragged and the trailing words have no cell beneath them.
+           Matches foldOrphans() padding in interlinear-align.js. -->
+      <xsl:if test="$remaining &gt; 1">
+        <xsl:call-template name="padGlossSlots">
+          <xsl:with-param name="n" select="$remaining - 1"/>
+        </xsl:call-template>
+      </xsl:if>
     </xsl:otherwise>
   </xsl:choose>
 </xsl:template>

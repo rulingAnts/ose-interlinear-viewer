@@ -6,6 +6,10 @@
   <title>OneStory Interlinearizer — FLExText Export</title>
   <link rel="stylesheet" href="./styles.css">
   <script src="./ext-links.js" defer></script>
+  <!-- Vernacular/gloss tier alignment. Classic script (not a module) so the
+       inline handlers below can see the OseAlign global. Must not be
+       deferred — buildFLExText() reads it synchronously. -->
+  <script src="./js/interlinear-align.js"></script>
   <style>
     .ws-warning {
       background: rgba(251, 191, 36, 0.08);
@@ -147,10 +151,11 @@
     });
   }
 
-  // Strips [B&B...] Bible reference annotation tags and collapses whitespace.
-  function removeBnB(text) {
-    return (text || '').replace(/\[B&B[^\]]*\]/g, '').replace(/\s+/g, ' ').trim();
-  }
+  // [B&B …] stripping now lives in docs/js/interlinear-align.js, which
+  // removes the tag's tokens from the vernacular AND the gloss tier by index.
+  // The old local removeBnB() stripped only the vernacular, which shifted
+  // every following gloss one word left — 186 verses in a real project. It
+  // was deleted rather than left in place so nobody reaches for it again.
 
   // Escapes characters that are special in XML text content and attributes.
   // Must be applied to every user-supplied value inserted into the XML output.
@@ -203,16 +208,24 @@
       const glossLine = verse.querySelector("StoryLine[lang='NationalBt']");
       const freeLine  = verse.querySelector("StoryLine[lang='InternationalBt']");
 
-      // Full vernacular sentence (reassembled from word list after BnB stripping).
-      const vernText  = vernLine  ? removeBnB(vernLine.textContent)           : '';
-      // National-language word-for-word gloss (space-separated, word-aligned).
-      const glossText = glossLine ? (glossLine.textContent  || '').trim()     : '';
       // English (or other international) free translation — single prose cell.
       const freeText  = freeLine  ? (freeLine.textContent   || '').trim()     : '';
 
-      // Split into word arrays for the interlinear word grid.
-      const vernWords  = vernText  ? vernText.split(/\s+/).filter(Boolean)  : [];
-      const glossWords = glossText ? glossText.split(/\s+/).filter(Boolean) : [];
+      // Align the vernacular and gloss tiers. See docs/js/interlinear-align.js:
+      // [B&B …] spans are removed from BOTH tiers by index (removing them from
+      // the vernacular alone misaligned 186 verses in a real project), and
+      // surplus glosses are folded onto the last real word rather than emitted
+      // as words with no baseline text.
+      const aligned = OseAlign.alignVerse(
+        vernLine  ? vernLine.textContent  : '',
+        glossLine ? glossLine.textContent : ''
+      );
+      const vernWords  = aligned.vernWords;
+      const glossWords = aligned.glossWords;
+
+      // Phrase baseline is rebuilt from the very tokens emitted below, so the
+      // sentence and the word grid can never disagree.
+      const vernText = vernWords.join(' ');
 
       lines.push('      <paragraph>');
       lines.push('        <phrases>');
@@ -227,14 +240,18 @@
       }
 
       // Word-by-word interlinear grid.
-      // Words are paired positionally: vernWords[i] ↔ glossWords[i].
-      // If counts differ, solo words at the end get an empty partner element
-      // rather than being dropped — FLEx accepts empty items.
+      // alignVerse() guarantees vernWords.length === glossWords.length, so
+      // every word has a real baseline token — no more phantom words with
+      // empty txt (there were 294 of those in a real project).
+      //
+      // A '***' gloss is an explicit hole the translator marked because the
+      // word has no gloss. FLEx is a machine consumer, so it becomes an empty
+      // gls item — the same shape already used for an unpaired word — rather
+      // than a literal '***' appearing as a gloss.
       lines.push('            <words>');
-      const maxLen = Math.max(vernWords.length, glossWords.length);
-      for (let i = 0; i < maxLen; i++) {
-        const vw = vernWords[i]  || '';
-        const gw = glossWords[i] || '';
+      for (let i = 0; i < vernWords.length; i++) {
+        const vw = vernWords[i];
+        const gw = OseAlign.glossOrEmpty(glossWords[i]);
         lines.push('              <word>');
         lines.push(`                <item type="txt" lang="${escXml(vernWS)}">${escXml(vw)}</item>`);
         lines.push(`                <item type="gls" lang="${escXml(glossWS)}">${escXml(gw)}</item>`);

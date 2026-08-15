@@ -6,6 +6,10 @@
   <title>OneStory Interlinearizer — TSV Export</title>
   <link rel="stylesheet" href="./styles.css">
   <script src="./ext-links.js" defer></script>
+  <!-- Vernacular/gloss tier alignment. Classic script (not a module) so the
+       inline handlers below can see the OseAlign global. Must not be
+       deferred — the generator reads it synchronously. -->
+  <script src="./js/interlinear-align.js"></script>
   <script>
   // ============================================================
   // OSE INTERLINEAR → TSV TRANSFORMATION
@@ -121,11 +125,11 @@
     });
   }
 
-  // Strips [B&B...] Bible reference annotation tags from vernacular text,
-  // then collapses any leftover extra whitespace.
-  function removeBnB(text) {
-    return (text || '').replace(/\[B&B[^\]]*\]/g, '').replace(/\s+/g, ' ').trim();
-  }
+  // [B&B …] stripping now lives in docs/js/interlinear-align.js, which
+  // removes the tag's tokens from the vernacular AND the gloss tier by index.
+  // The old local removeBnB() stripped only the vernacular, shifting every
+  // following gloss one column left. Deleted rather than left in place so
+  // nobody reaches for it again.
 
   // Sanitizes a string for safe inclusion in a TSV cell.
   // Tabs would break column structure; newlines would create phantom rows.
@@ -169,12 +173,23 @@
       const glossLine = verse.querySelector("StoryLine[lang='NationalBt']");
       const freeLine  = verse.querySelector("StoryLine[lang='InternationalBt']");
 
-      // Vernacular: strip [B&B...] tags, then split on whitespace.
-      // NationalBt:  sanitize for TSV, then split on whitespace.
+      // Align the vernacular and gloss tiers. See docs/js/interlinear-align.js:
+      // [B&B …] spans are removed from BOTH tiers by index, and surplus
+      // glosses are folded onto the last real word. Stripping the vernacular
+      // alone shifted every following gloss one column left — 186 verses in a
+      // real project, which in a spreadsheet is silent and very hard to spot.
+      const aligned = OseAlign.alignVerse(
+        vernLine  ? vernLine.textContent  : '',
+        glossLine ? glossLine.textContent : ''
+      );
       // InternationalBt: single prose cell — do not split.
-      const vernWords  = vernLine  ? removeBnB(vernLine.textContent).split(/\s+/).filter(Boolean)  : [];
-      const glossWords = glossLine ? escapeVal(glossLine.textContent).split(/\s+/).filter(Boolean)  : [];
-      const freeText   = freeLine  ? escapeVal(freeLine.textContent)                                : '';
+      const freeText = freeLine ? escapeVal(freeLine.textContent) : '';
+
+      // A '***' gloss is an explicit hole: emit an EMPTY CELL, never drop it.
+      // Dropping would shift every later column and reintroduce the very bug
+      // this alignment exists to fix.
+      const vernWords  = aligned.vernWords.map(escapeVal);
+      const glossWords = aligned.glossWords.map(g => escapeVal(OseAlign.glossOrEmpty(g)));
 
       // Row 1: vernacular words — one per column starting at col 0.
       rows.push([...vernWords]);

@@ -79,8 +79,18 @@ if ! command -v node >/dev/null 2>&1; then
   echo "" >&2
   fail=1
 else
-  node "$(git rev-parse --show-toplevel)/tools/check-shell.mjs" || fail=1
-  node "$(git rev-parse --show-toplevel)/tools/check-versions.mjs" || fail=1
+  root=$(git rev-parse --show-toplevel)
+  node "$root/tools/check-shell.mjs" || fail=1
+  node "$root/tools/check-versions.mjs" || fail=1
+
+  # ------------------------------------------------------------
+  # GUARD 4 — the test suite.
+  # ------------------------------------------------------------
+  # Alignment between the vernacular and gloss tiers is positional and
+  # therefore silent when it breaks: the output stays well-formed, the
+  # glosses just sit under the wrong words. These tests are the only
+  # thing that notices.
+  sh "$root/tools/run-tests.sh" || fail=1
 fi
 
 if [ "$fail" -ne 0 ]; then
