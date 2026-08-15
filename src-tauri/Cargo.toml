@@ -2,6 +2,7 @@
 name = "ose-interlinear-viewer"
 version = "2.0.1"
 edition = "2021"
+license = "AGPL-3.0-or-later"
 
 [lib]
 name = "ose_interlinear_viewer_lib"

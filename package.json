@@ -4,6 +4,7 @@
   "description": "Exports stories from OneStory Editor as Interlinearized Documents",
   "version": "2.0.1",
   "author": "Seth Johnston",
+  "license": "AGPL-3.0-or-later",
   "scripts": {
     "doctor": "node tools/doctor-hooks.mjs",
     "check": "node tools/check-shell.mjs && node tools/check-versions.mjs",

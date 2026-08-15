@@ -39,11 +39,37 @@ The TSV export always uses FLEx style. The paragraph view at the end (Paratext s
 
 ## Development
 
-Built with [Electron](https://www.electronjs.org/). To run locally:
+Built with [Tauri v2](https://tauri.app/). The frontend is static files in `docs/` — the same
+files GitHub Pages serves as the web version — and `src-tauri/` is the Rust shell around them.
 
 ```bash
 npm install
-npm start
+npm run dev
 ```
 
-Requires Node.js. The XLingPaper and Web Page exports use client-side XSLT (via the browser's built-in `XSLTProcessor`) to transform the `.onestory` XML. The TSV export uses plain JavaScript. No server needed for any format.
+Requires Node.js and a Rust toolchain. `npm install` is not optional: its `prepare` script sets
+`core.hooksPath`, which is what activates the pre-commit hook in `.githooks/`. That hook stamps
+`CACHE_VERSION` in `docs/sw.js`, refuses to commit a `.onestory` project file, and runs the
+checkers in `tools/`. If you skip it, all of that silently does nothing — `npm run dev` will
+refuse to start until it is wired, and `npm run doctor` checks it on demand.
+
+The XLingPaper and Web Page exports use client-side XSLT (via the browser's built-in
+`XSLTProcessor`) to transform the `.onestory` XML. The TSV and FLExText exports use plain
+JavaScript. No server needed for any format.
+
+⚠ `docs/sw.js` carries an explicit `APP_SHELL` array. Anything added under `docs/` needs a line
+there, and anything listed there must exist on disk — `cache.addAll` is atomic, so a single 404
+stops the new service worker activating and pins every web user to the old version.
+`npm run check` asserts both directions.
+
+## Licence
+
+Copyright © Seth Johnston.
+
+Licensed under the [GNU Affero General Public License v3.0](LICENSE.md) or later
+(`AGPL-3.0-or-later`). You may use, modify and redistribute this software, including
+commercially, provided derivative works remain under the same licence and their source is made
+available — including to users who interact with a modified version over a network.
+
+Releases up to and including v2.0.1 were published under CC BY-NC-SA 4.0. Those copies remain
+under that licence; it is not retroactively revoked.

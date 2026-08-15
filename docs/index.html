@@ -100,17 +100,25 @@
     const warning = document.getElementById('browserWarning');
     const message = document.getElementById('message');
 
+    const RELEASES = 'https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest';
+
+    // Source-availability notice. The AGPL's network clause entitles anyone
+    // using the hosted web version to the source, so the link is part of the
+    // page rather than something to go looking for.
+    const SOURCE_NOTE = ' <a href="https://github.com/rulingAnts/ose-interlinear-viewer">Source</a> (AGPL-3.0).';
+
     if (window.__TAURI__) {
-      message.innerHTML = 'Running as desktop app. <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">Check for updates</a>.';
+      message.innerHTML = 'Running as desktop app. <a href="' + RELEASES + '">Check for updates</a>.' + SOURCE_NOTE;
     } else if (isFirefox()) {
-      warning.innerHTML = 'This app does not work correctly in Firefox. Please use Chrome or Edge — or <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">download the Windows desktop app</a>.';
+      warning.innerHTML = 'This app does not work correctly in Firefox. Please use Chrome or Edge — or <a href="' + RELEASES + '">download the Windows desktop app</a>.';
       document.querySelector('.card').style.display = 'none';
+      message.innerHTML = 'Web version.' + SOURCE_NOTE;
     } else if (!isSupportedBrowser()) {
-      warning.innerHTML = 'Unsupported browser detected. Please use Chrome, Edge, or Safari — or <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">download the Windows app</a>.';
+      warning.innerHTML = 'Unsupported browser detected. Please use Chrome, Edge, or Safari — or <a href="' + RELEASES + '">download the Windows app</a>.';
       alert("This app requires Chrome, Edge, or Safari. You will be redirected to the download page.");
-      window.location.href = "https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest";
+      window.location.href = RELEASES;
     } else {
-      message.innerHTML = 'Web version &mdash; may include experimental changes. Stable <a href="https://github.com/rulingAnts/ose-interlinear-viewer/releases/latest">Windows desktop app here</a>.';
+      message.innerHTML = 'Web version &mdash; may include experimental changes. Stable <a href="' + RELEASES + '">Windows desktop app here</a>.' + SOURCE_NOTE;
     }
 
   </script>
